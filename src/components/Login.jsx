@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './Login.css';
 
-export default function Login() {
+export default function Login({ onLoginSuccess }) {
   const [authState, setAuthState] = useState('idle');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +18,6 @@ export default function Login() {
 
   return (
     <div className="login-wrapper">
-      {/* LEFT COLUMN */}
       <div className="login-sidebar" style={{ backgroundImage: `url('/path-to-chameleon-image.jpg')` }}>
         <div className="sidebar-overlay"></div>
         
@@ -44,7 +43,6 @@ export default function Login() {
         </div>
       </div>
 
-      {/* RIGHT COLUMN */}
       <div className="login-main">
         <div className="top-action">
           <a href="#" className="return-link">🔗 Return to public site &gt;</a>
@@ -142,7 +140,7 @@ export default function Login() {
 
               <div className="success-actions">
                 <p className="action-label">Continue to Spottybird Dashboard</p>
-                <button className="continue-btn" onClick={() => alert('Proceed to dashboard...')}>
+                <button className="continue-btn" onClick={onLoginSuccess}>
                   Continue
                 </button>
                 <button className="back-btn" onClick={() => {
