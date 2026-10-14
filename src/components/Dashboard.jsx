@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import './Dashboard.css';
 
-export default function Dashboard({ onLogout }) {
+export default function ComponentName({ onLogout, onNavigateProfile, onNavigateDashboard, onNavigateCases, onNavigateAdmissions, onNavigateRehabilitation, onNavigateAllRecords, onNavigateVolunteers }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   return (
     <div className="dashboard-wrapper">
@@ -26,11 +27,11 @@ export default function Dashboard({ onLogout }) {
         <nav className="sidebar-nav">
           <ul>
             <li className="active"><span className="icon">🏠</span> {isSidebarOpen && 'Dashboard'}</li>
-            <li><span className="icon">📁</span> {isSidebarOpen && 'Cases'}</li>
-            <li><span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}</li>
-            <li><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
-            <li><span className="icon">📄</span> {isSidebarOpen && 'All Records'}</li>
-            <li><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
+            <li onClick={onNavigateCases} style={{ cursor: 'pointer' }}><span className="icon">📁</span> {isSidebarOpen && 'Cases'}</li>
+            <li onClick={onNavigateAdmissions} style={{ cursor: 'pointer' }}><span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}</li>
+            <li onClick={onNavigateRehabilitation} style={{ cursor: 'pointer' }}><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
+            <li onClick={onNavigateAllRecords} style={{ cursor: 'pointer' }}><span className="icon">📄</span> {isSidebarOpen && 'All Records'}</li>
+            <li onClick={onNavigateVolunteers} style={{ cursor: 'pointer' }}><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
           </ul>
         </nav>
 
@@ -69,8 +70,8 @@ export default function Dashboard({ onLogout }) {
 
               {isProfileMenuOpen && (
                 <div className="dropdown-panel">
-                  <button>View Profile Settings</button>
-                  <button onClick={onLogout}>Log Out ⍈</button>
+                  <button onClick={onNavigateProfile}>View Profile Settings</button>
+                  <button onClick={() => setIsLogoutModalOpen(true)}>Log Out ⍈</button>
                 </div>
               )}
             </div>
@@ -126,11 +127,11 @@ export default function Dashboard({ onLogout }) {
               </div>
               <div className="chart-content-column">
                 <div className="chart-area grid-bg bar-chart">
-                  <div className="bar-3d style-1" style={{height: '45%'}}></div>
-                  <div className="bar-3d style-2" style={{height: '35%'}}></div>
-                  <div className="bar-3d style-3" style={{height: '65%'}}></div>
-                  <div className="bar-3d style-4" style={{height: '20%'}}></div>
-                  <div className="bar-3d style-5" style={{height: '85%'}}></div>
+                  <div className="bar-wrapper"><div className="bar-3d style-1" style={{height: '45%'}}></div></div>
+                  <div className="bar-wrapper"><div className="bar-3d style-2" style={{height: '35%'}}></div></div>
+                  <div className="bar-wrapper"><div className="bar-3d style-3" style={{height: '65%'}}></div></div>
+                  <div className="bar-wrapper"><div className="bar-3d style-4" style={{height: '20%'}}></div></div>
+                  <div className="bar-wrapper"><div className="bar-3d style-5" style={{height: '85%'}}></div></div>
                 </div>
                 <div className="x-axis">
                   <span>New</span>
@@ -189,8 +190,8 @@ export default function Dashboard({ onLogout }) {
                         <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#102a1d" floodOpacity="0.4"/>
                       </filter>
                     </defs>
-                    <path d="M0,80 L80,60 L160,70 L240,30 L320,50 L400,10" fill="none" stroke="#4a7c59" strokeWidth="4" filter="url(#shadow)"/>
-                    <path d="M0,90 L80,75 L160,65 L240,55 L320,40 L400,10" fill="none" stroke="#8da93e" strokeWidth="4" filter="url(#shadow)"/>
+                    <path d="M0,70 L80,50 L160,60 L240,20 L320,40 L400,5" fill="none" stroke="#4a7c59" strokeWidth="4" filter="url(#shadow)" vectorEffect="non-scaling-stroke"/>
+                    <path d="M0,80 L80,65 L160,55 L240,45 L320,30 L400,5" fill="none" stroke="#8da93e" strokeWidth="4" filter="url(#shadow)" vectorEffect="non-scaling-stroke"/>
                   </svg>
                 </div>
                 <div className="x-axis">
@@ -234,6 +235,22 @@ export default function Dashboard({ onLogout }) {
 
         </div>
       </main>
+
+      {isLogoutModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <img src="/mock-profile.jpg" alt="Karien Schmidt" className="modal-avatar" />
+            <h3>Karien Schmidt</h3>
+            <p className="modal-role">Executive Director</p>
+            <p className="modal-prompt">Are you sure you want to log out?</p>
+            <p className="modal-subtext">Accepting it will take you back to the log in page.</p>
+            <div className="modal-actions">
+              <button className="btn-dark" onClick={onLogout}>Yes, log out</button>
+              <button className="btn-outline" onClick={() => setIsLogoutModalOpen(false)}>No, go back.</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
