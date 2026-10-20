@@ -1,0 +1,341 @@
+.admissions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+.drafts-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #e8f5e9;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #c8e6c9;
+}
+
+.drafts-banner h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.25rem;
+  color: #111;
+  font-weight: 800;
+}
+
+.drafts-banner p {
+  margin: 0 0 1rem 0;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.draft-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 600;
+}
+
+.draft-pill {
+  background: var(--chameleon-green);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+}
+
+.btn-solid-green {
+  background: var(--chameleon-green);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-solid-green:hover {
+  background: var(--forest-mid);
+}
+
+.btn-solid-green.large {
+  padding: 0.85rem 2rem;
+}
+
+.intake-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.intake-title h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.25rem;
+  color: #111;
+  font-weight: 800;
+}
+
+.intake-title p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.progress-steps {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.step {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid #ddd;
+  color: #888;
+  background: white;
+}
+
+.step.active {
+  border-color: var(--chameleon-green);
+  color: var(--chameleon-green);
+  background: #f0f5f2;
+}
+
+.form-columns {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.form-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.card-header h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+  color: #111;
+  font-weight: 700;
+}
+
+.card-header p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.input-group label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #111;
+}
+
+.input-group input, 
+.input-group select {
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #333;
+  outline: none;
+  background: white;
+  transition: border-color 0.2s;
+}
+
+.input-group input:focus, 
+.input-group select:focus {
+  border-color: var(--chameleon-green);
+}
+
+.input-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-row-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr 1fr;
+  gap: 1rem;
+}
+
+.pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.selectable-pill {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  background: white;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.selectable-pill:hover {
+  background: #f9fafb;
+}
+
+.selectable-pill.active-green {
+  border-color: var(--chameleon-green);
+  color: var(--chameleon-green);
+  background: #f0f5f2;
+}
+
+.selectable-pill.check-pill.active {
+  border-color: var(--chameleon-green);
+  color: #111;
+  background: white;
+}
+
+.check-icon {
+  color: white;
+  background: var(--chameleon-green);
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+}
+
+.attachment-row {
+  align-items: stretch;
+}
+
+.upload-box {
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.upload-box:hover {
+  border-color: var(--chameleon-green);
+}
+
+.upload-icon {
+  font-size: 1.5rem;
+  color: var(--chameleon-green);
+  font-weight: 300;
+}
+
+.upload-box strong {
+  display: block;
+  font-size: 0.85rem;
+  color: #111;
+}
+
+.upload-box p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.whatsapp-link-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  background: white;
+}
+
+.whatsapp-link-box strong {
+  display: block;
+  font-size: 0.85rem;
+  color: #111;
+  margin-bottom: 0.25rem;
+}
+
+.whatsapp-link-box p {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.whatsapp-link-box a {
+  font-size: 0.75rem;
+  color: var(--chameleon-green);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.form-bottom-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.btn-outline-action {
+  background: white;
+  color: var(--chameleon-green);
+  border: 1px solid var(--chameleon-green);
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-outline-action:hover {
+  background: #f0f5f2;
+}
