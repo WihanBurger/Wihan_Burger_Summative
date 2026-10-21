@@ -11,19 +11,26 @@ import AllRecords from './components/AllRecords'
 import Volunteers from './components/Volunteers'
 
 function App() {
-  const [currentView, setCurrentView] = useState('login')
+  const [currentView, setCurrentView] = useState('signup')
   const [currentUser, setCurrentUser] = useState(null)
 
   useEffect(() => {
     const storedUser = localStorage.getItem('spottybird_currentUser')
     if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser))
-      setCurrentView('dashboard')
+      try {
+        const parsedUser = JSON.parse(storedUser)
+        setCurrentUser(parsedUser)
+        setCurrentView('dashboard')
+      } catch (e) {
+        console.error("Error loading session:", e)
+        localStorage.removeItem('spottybird_currentUser')
+      }
     }
   }, [])
 
-  const handleAuthSuccess = (user) => {
-    setCurrentUser(user)
+  const handleAuthSuccess = (userData) => {
+    localStorage.setItem('spottybird_currentUser', JSON.stringify(userData))
+    setCurrentUser(userData)
     setCurrentView('dashboard')
   }
 
@@ -34,17 +41,17 @@ function App() {
     setCurrentView('login')
   }
 
-  if (currentView === 'login') {
-    return <Login 
-      onLoginSuccess={handleAuthSuccess} 
-      onNavigateSignUp={() => setCurrentView('signup')} 
-    />
-  }
-
   if (currentView === 'signup') {
     return <SignUp 
       onSignUpSuccess={handleAuthSuccess} 
       onNavigateLogin={() => setCurrentView('login')} 
+    />
+  }
+
+  if (currentView === 'login') {
+    return <Login 
+      onLoginSuccess={handleAuthSuccess} 
+      onNavigateSignUp={() => setCurrentView('signup')} 
     />
   }
 
@@ -160,7 +167,7 @@ function App() {
     />
   }
 
-  return null;
+  return null
 }
 
 export default App

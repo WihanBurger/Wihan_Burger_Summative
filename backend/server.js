@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
+import caseRoutes from './routes/cases.js';
 
 dotenv.config();
 
@@ -12,6 +13,7 @@ app.use(express.json());
 app.use(cors());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/cases', caseRoutes);
 
 const PORT = process.env.PORT || 5000;
 

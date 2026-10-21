@@ -1,13 +1,127 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 
-export default function ComponentName({ onLogout, onNavigateProfile, onNavigateDashboard, onNavigateCases, onNavigateAdmissions, onNavigateRehabilitation, onNavigateAllRecords, onNavigateVolunteers }) {
+export default function Dashboard({ 
+  currentUser,
+  onLogout, 
+  onNavigateProfile, 
+  onNavigateDashboard, 
+  onNavigateCases, 
+  onNavigateAdmissions, 
+  onNavigateRehabilitation, 
+  onNavigateAllRecords, 
+  onNavigateVolunteers 
+}) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [timeFilter, setTimeFilter] = useState('30');
+  
+  const [wildlifeCases, setWildlifeCases] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+
+  const userName = currentUser?.name || currentUser?.username || currentUser?.email || 'Wildlife Volunteer';
+  const userRole = currentUser?.role || 'Staff Member';
+
+  useEffect(() => {
+    const getDashboardData = async () => {
+      try {
+        const token = localStorage.getItem('spottybird_token');
+        const response = await fetch('http://127.0.0.1:5000/api/cases', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        setWildlifeCases(data);
+        setIsLoading(false);
+      } catch (error) {
+        setFetchError(error.message);
+        setIsLoading(false);
+      }
+    };
+
+    getDashboardData();
+  }, []);
+
+  const filteredCases = wildlifeCases.filter(c => {
+    if (timeFilter === 'all') return true;
+    const admittedDate = new Date(c.dateAdmitted || c.createdAt);
+    const diffTime = Math.abs(new Date() - admittedDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= parseInt(timeFilter);
+  });
+
+  const totalAdmissions = filteredCases.length;
+  const criticalCases = filteredCases.filter(c => c.severity === 'Critical').length;
+  const pendingCases = filteredCases.filter(c => c.status === 'Pending' || c.status === 'Assess').length;
+  const inRehabCount = filteredCases.filter(c => c.status === 'In Rehabilitation').length;
+
+  const stages = { new: 0, assess: 0, inCare: 0, ready: 0, closed: 0 };
+  const types = { mammals: 0, birds: 0, reptiles: 0, others: 0 };
+  const breakdown = { released: 0, transferred: 0, inRehab: 0, other: 0 };
+
+  filteredCases.forEach(c => {
+    const status = (c.status || '').toLowerCase();
+    const species = (c.species || '').toLowerCase();
+
+    if (status.includes('new')) stages.new++;
+    else if (status.includes('pending') || status.includes('assess')) stages.assess++;
+    else if (status.includes('rehab')) stages.inCare++;
+    else if (status.includes('ready') || status.includes('transfer')) stages.ready++;
+    else if (status.includes('releas') || status.includes('clos')) stages.closed++;
+    else stages.new++;
+
+    if (species.includes('mammal') || species.includes('buck') || species.includes('cat')) types.mammals++;
+    else if (species.includes('bird') || species.includes('owl') || species.includes('eagle')) types.birds++;
+    else if (species.includes('reptile') || species.includes('snake') || species.includes('turtle')) types.reptiles++;
+    else types.others++;
+
+    if (status.includes('releas')) breakdown.released++;
+    else if (status.includes('transfer')) breakdown.transferred++;
+    else if (status.includes('rehab')) breakdown.inRehab++;
+    else breakdown.other++;
+  });
+
+  const maxStage = Math.max(stages.new, stages.assess, stages.inCare, stages.ready, stages.closed) || 1;
+  const stageHeights = {
+    new: (stages.new / maxStage) * 100,
+    assess: (stages.assess / maxStage) * 100,
+    inCare: (stages.inCare / maxStage) * 100,
+    ready: (stages.ready / maxStage) * 100,
+    closed: (stages.closed / maxStage) * 100,
+  };
+
+  const totalTypes = types.mammals + types.birds + types.reptiles + types.others || 1;
+  const typePcts = {
+    mammals: Math.round((types.mammals / totalTypes) * 100),
+    birds: Math.round((types.birds / totalTypes) * 100),
+    reptiles: Math.round((types.reptiles / totalTypes) * 100),
+    others: Math.round((types.others / totalTypes) * 100),
+  };
+
+  const maxBreakdown = Math.max(breakdown.released, breakdown.transferred, breakdown.inRehab, breakdown.other) || 1;
+  const bdWidths = {
+    released: (breakdown.released / maxBreakdown) * 100,
+    transferred: (breakdown.transferred / maxBreakdown) * 100,
+    inRehab: (breakdown.inRehab / maxBreakdown) * 100,
+    other: (breakdown.other / maxBreakdown) * 100,
+  };
+
+  if (isLoading) {
+    return <div className="page-transition loading-screen">Loading dashboard analytics...</div>;
+  }
 
   return (
-    <div className="dashboard-wrapper">
+    <div className="dashboard-wrapper page-transition">
       <aside className={`sidebar ${isSidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="brand">
@@ -26,7 +140,7 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
 
         <nav className="sidebar-nav">
           <ul>
-            <li className="active"><span className="icon">🏠</span> {isSidebarOpen && 'Dashboard'}</li>
+            <li className="active" onClick={onNavigateDashboard} style={{ cursor: 'pointer' }}><span className="icon">🏠</span> {isSidebarOpen && 'Dashboard'}</li>
             <li onClick={onNavigateCases} style={{ cursor: 'pointer' }}><span className="icon">📁</span> {isSidebarOpen && 'Cases'}</li>
             <li onClick={onNavigateAdmissions} style={{ cursor: 'pointer' }}><span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}</li>
             <li onClick={onNavigateRehabilitation} style={{ cursor: 'pointer' }}><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
@@ -34,14 +148,6 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
             <li onClick={onNavigateVolunteers} style={{ cursor: 'pointer' }}><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
           </ul>
         </nav>
-
-        {isSidebarOpen && (
-          <div className="sidebar-whatsapp">
-            <div className="wa-icon">💬</div>
-            <h4>WhatsApp Intake</h4>
-            <button>Open WhatsApp ↗</button>
-          </div>
-        )}
       </aside>
 
       <main className="main-content">
@@ -50,8 +156,12 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
             <h2 className="page-title">Analytics & Insights</h2>
             <p className="page-subtitle">Admissions, rehabilitation performance and case outcomes at a glance.</p>
             <div className="filters">
-              <select><option>Last 30 Days</option></select>
-              <select><option>All Locations</option></select>
+              <select value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="180">Last 6 Months</option>
+                <option value="all">All Time</option>
+              </select>
             </div>
           </div>
           
@@ -61,10 +171,14 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
             </div>
             
             <div className="profile-menu" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
-              <img src="/mock-profile.jpg" alt="Karien" className="avatar" />
+              <img 
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=4a7c59&color=fff&rounded=true`} 
+                alt={userName} 
+                className="avatar" 
+              />
               <div className="profile-info">
-                <strong>Karien Schmidt</strong>
-                <span>Executive Director</span>
+                <strong>{userName}</strong>
+                <span>{userRole}</span>
               </div>
               <span className="dropdown-arrow">﹀</span>
 
@@ -78,20 +192,22 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
           </div>
         </header>
 
+        {fetchError && <div className="error-banner">Data Sync Error: {fetchError}</div>}
+
         <div className="kpi-grid">
           <div className="kpi-card">
             <div className="kpi-icon new">📄</div>
             <div className="kpi-data">
-              <p>New Reports</p>
-              <h3>18</h3>
-              <span className="trend positive">+6 from yesterday</span>
+              <p>Total Admissions</p>
+              <h3>{totalAdmissions}</h3>
+              <span className="trend positive">Live DB Connection</span>
             </div>
           </div>
           <div className="kpi-card">
             <div className="kpi-icon urgent">❗</div>
             <div className="kpi-data">
-              <p>Urgent</p>
-              <h3>4</h3>
+              <p>Urgent Cases</p>
+              <h3>{criticalCases}</h3>
               <span className="trend neutral">Require Attention</span>
             </div>
           </div>
@@ -99,16 +215,16 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
             <div className="kpi-icon pending">❓</div>
             <div className="kpi-data">
               <p>Info Pending</p>
-              <h3>6</h3>
-              <span className="trend warning">+6 Needs Response</span>
+              <h3>{pendingCases}</h3>
+              <span className="trend warning">Needs Response</span>
             </div>
           </div>
           <div className="kpi-card">
             <div className="kpi-icon rehab">🛡️</div>
             <div className="kpi-data">
               <p>In Rehabilitation</p>
-              <h3>18</h3>
-              <span className="trend positive">+5 this week</span>
+              <h3>{inRehabCount}</h3>
+              <span className="trend positive">Active Care</span>
             </div>
           </div>
         </div>
@@ -117,21 +233,20 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
           <div className="chart-card">
             <h3>Cases by workflow stage</h3>
             <p className="chart-sub">Current distribution across the case lifecycle</p>
-            
             <div className="chart-wrapper">
               <div className="y-axis">
-                <span>45</span>
-                <span>30</span>
-                <span>15</span>
+                <span>{maxStage}</span>
+                <span>{Math.round(maxStage * 0.66)}</span>
+                <span>{Math.round(maxStage * 0.33)}</span>
                 <span>0</span>
               </div>
               <div className="chart-content-column">
                 <div className="chart-area grid-bg bar-chart">
-                  <div className="bar-wrapper"><div className="bar-3d style-1" style={{height: '45%'}}></div></div>
-                  <div className="bar-wrapper"><div className="bar-3d style-2" style={{height: '35%'}}></div></div>
-                  <div className="bar-wrapper"><div className="bar-3d style-3" style={{height: '65%'}}></div></div>
-                  <div className="bar-wrapper"><div className="bar-3d style-4" style={{height: '20%'}}></div></div>
-                  <div className="bar-wrapper"><div className="bar-3d style-5" style={{height: '85%'}}></div></div>
+                  <div className="bar-wrapper"><div className="bar-3d style-1" style={{height: `${stageHeights.new}%`}}></div></div>
+                  <div className="bar-wrapper"><div className="bar-3d style-2" style={{height: `${stageHeights.assess}%`}}></div></div>
+                  <div className="bar-wrapper"><div className="bar-3d style-3" style={{height: `${stageHeights.inCare}%`}}></div></div>
+                  <div className="bar-wrapper"><div className="bar-3d style-4" style={{height: `${stageHeights.ready}%`}}></div></div>
+                  <div className="bar-wrapper"><div className="bar-3d style-5" style={{height: `${stageHeights.closed}%`}}></div></div>
                 </div>
                 <div className="x-axis">
                   <span>New</span>
@@ -150,15 +265,15 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
             <div className="donut-container">
               <div className="donut-3d">
                 <div className="donut-hole">
-                  <strong>68%</strong>
-                  <span>released</span>
+                  <strong>{typePcts.mammals}%</strong>
+                  <span>mammals</span>
                 </div>
               </div>
               <div className="donut-legend">
-                <div className="legend-item"><span className="dot dot-1"></span> Mammals <strong>68%</strong></div>
-                <div className="legend-item"><span className="dot dot-2"></span> Birds <strong>18%</strong></div>
-                <div className="legend-item"><span className="dot dot-3"></span> Reptiles <strong>9%</strong></div>
-                <div className="legend-item"><span className="dot dot-4"></span> Others <strong>5%</strong></div>
+                <div className="legend-item"><span className="dot dot-1"></span> Mammals <strong>{typePcts.mammals}%</strong></div>
+                <div className="legend-item"><span className="dot dot-2"></span> Birds <strong>{typePcts.birds}%</strong></div>
+                <div className="legend-item"><span className="dot dot-3"></span> Reptiles <strong>{typePcts.reptiles}%</strong></div>
+                <div className="legend-item"><span className="dot dot-4"></span> Others <strong>{typePcts.others}%</strong></div>
               </div>
             </div>
           </div>
@@ -169,12 +284,7 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
                 <h3>Admissions vs releases</h3>
                 <p className="chart-sub">Monthly movement over the last six months</p>
               </div>
-              <div className="toggle-pills">
-                <span className="active">Admissions</span>
-                <span>Releases</span>
-              </div>
             </div>
-            
             <div className="chart-wrapper">
               <div className="y-axis">
                 <span>60</span>
@@ -191,7 +301,6 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
                       </filter>
                     </defs>
                     <path d="M0,70 L80,50 L160,60 L240,20 L320,40 L400,5" fill="none" stroke="#4a7c59" strokeWidth="4" filter="url(#shadow)" vectorEffect="non-scaling-stroke"/>
-                    <path d="M0,80 L80,65 L160,55 L240,45 L320,30 L400,5" fill="none" stroke="#8da93e" strokeWidth="4" filter="url(#shadow)" vectorEffect="non-scaling-stroke"/>
                   </svg>
                 </div>
                 <div className="x-axis">
@@ -212,23 +321,23 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
             <div className="chart-area horizontal-bar-chart">
               <div className="h-bar-row">
                 <span>Released</span>
-                <div className="h-bar-track"><div className="h-bar-3d style-1" style={{width: '82%'}}></div></div>
-                <strong>82</strong>
+                <div className="h-bar-track"><div className="h-bar-3d style-1" style={{width: `${bdWidths.released}%`}}></div></div>
+                <strong>{breakdown.released}</strong>
               </div>
               <div className="h-bar-row">
                 <span>Transferred</span>
-                <div className="h-bar-track"><div className="h-bar-3d style-2" style={{width: '54%'}}></div></div>
-                <strong>54</strong>
+                <div className="h-bar-track"><div className="h-bar-3d style-2" style={{width: `${bdWidths.transferred}%`}}></div></div>
+                <strong>{breakdown.transferred}</strong>
               </div>
               <div className="h-bar-row">
                 <span>In Rehab</span>
-                <div className="h-bar-track"><div className="h-bar-3d style-3" style={{width: '28%'}}></div></div>
-                <strong>28</strong>
+                <div className="h-bar-track"><div className="h-bar-3d style-3" style={{width: `${bdWidths.inRehab}%`}}></div></div>
+                <strong>{breakdown.inRehab}</strong>
               </div>
               <div className="h-bar-row">
                 <span>Other</span>
-                <div className="h-bar-track"><div className="h-bar-3d style-4" style={{width: '20%'}}></div></div>
-                <strong>20</strong>
+                <div className="h-bar-track"><div className="h-bar-3d style-4" style={{width: `${bdWidths.other}%`}}></div></div>
+                <strong>{breakdown.other}</strong>
               </div>
             </div>
           </div>
@@ -239,9 +348,13 @@ export default function ComponentName({ onLogout, onNavigateProfile, onNavigateD
       {isLogoutModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <img src="/mock-profile.jpg" alt="Karien Schmidt" className="modal-avatar" />
-            <h3>Karien Schmidt</h3>
-            <p className="modal-role">Executive Director</p>
+            <img 
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=4a7c59&color=fff&size=128&rounded=true`} 
+              alt={userName} 
+              className="modal-avatar" 
+            />
+            <h3>{userName}</h3>
+            <p className="modal-role">{userRole}</p>
             <p className="modal-prompt">Are you sure you want to log out?</p>
             <p className="modal-subtext">Accepting it will take you back to the log in page.</p>
             <div className="modal-actions">
