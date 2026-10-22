@@ -13,19 +13,19 @@ export default function Cases({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-
+  
   const [cases, setCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [calendarView, setCalendarView] = useState(new Date(2026, 4, 1));
+  const [calendarView, setCalendarView] = useState(new Date(2026, 4, 1)); 
   const [startDate, setStartDate] = useState(new Date(2026, 4, 12));
   const [endDate, setEndDate] = useState(new Date(2026, 4, 18));
-  const [selectionStep, setSelectionStep] = useState('start');
+  const [selectionStep, setSelectionStep] = useState('start'); 
 
   const actualUser = currentUser?.user || currentUser || {};
   const fullName = actualUser.name || 'Jeffry Burger';
   const userRole = actualUser.role || 'Administrator';
-
+  
   const getInitials = (name) => {
     const parts = name.split(' ');
     if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
@@ -105,7 +105,7 @@ export default function Cases({
       } else {
         setEndDate(clickedDate);
         setSelectionStep('start');
-        setTimeout(() => setIsCalendarOpen(false), 200);
+        setTimeout(() => setIsCalendarOpen(false), 200); 
       }
     }
   };
@@ -118,17 +118,17 @@ export default function Cases({
     const daysInPrevMonth = new Date(year, month, 0).getDate();
     
     let days = [];
-
+    
     for (let i = firstDayIndex; i > 0; i--) {
       days.push(<div key={`prev-${i}`} className="day prev-month">{daysInPrevMonth - i + 1}</div>);
     }
-
+    
     for (let i = 1; i <= daysInMonth; i++) {
       const thisDate = new Date(year, month, i);
       let className = "day";
-
+      
       if (thisDate.getDay() === 0) className += " sun";
-
+      
       if (startDate && thisDate.getTime() === startDate.getTime()) className += " range-start";
       if (endDate && thisDate.getTime() === endDate.getTime()) className += " range-end";
       if (startDate && endDate && thisDate > startDate && thisDate < endDate) className += " range";
@@ -277,7 +277,7 @@ export default function Cases({
                  <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>No active cases found in the database.</div>
                ) : (
                  cases.map((caseItem) => (
-                   <div className="table-row clickable-row" key={caseItem._id} onClick={onNavigateCaseDetails}>
+                   <div className="table-row clickable-row" key={caseItem._id} onClick={() => onNavigateCaseDetails(caseItem._id)}>
                      <div className="col-id fw-600">{caseItem.caseId}</div>
                      <div className="col-animal">{caseItem.animal}</div>
                      <div className="col-location">{caseItem.location}</div>

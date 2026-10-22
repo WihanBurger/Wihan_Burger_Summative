@@ -14,6 +14,8 @@ function App() {
   const [currentView, setCurrentView] = useState('signup')
   const [currentUser, setCurrentUser] = useState(null)
 
+  const [selectedCaseId, setSelectedCaseId] = useState(null)
+
   useEffect(() => {
     const storedUser = localStorage.getItem('spottybird_currentUser')
     if (storedUser) {
@@ -76,7 +78,7 @@ function App() {
   if (currentView === 'profile') {
     return <ProfileSettings 
       currentUser={currentUser}
-      onUpdateUser={handleUpdateUser}
+      onUpdateUser={handleUpdateUser} 
       onBack={() => setCurrentView('dashboard')} 
       onLogout={handleLogout} 
       onNavigateDashboard={() => setCurrentView('dashboard')}
@@ -94,7 +96,10 @@ function App() {
       onLogout={handleLogout} 
       onNavigateProfile={() => setCurrentView('profile')} 
       onNavigateDashboard={() => setCurrentView('dashboard')}
-      onNavigateCaseDetails={() => setCurrentView('case_details')}
+      onNavigateCaseDetails={(id) => {
+        setSelectedCaseId(id);
+        setCurrentView('case_details');
+      }}
       onNavigateAdmissions={() => setCurrentView('admissions')}
       onNavigateRehabilitation={() => setCurrentView('rehabilitation')}
       onNavigateAllRecords={() => setCurrentView('all_records')}
@@ -104,6 +109,7 @@ function App() {
 
   if (currentView === 'case_details') {
     return <CaseDetails 
+      selectedCaseId={selectedCaseId}
       currentUser={currentUser}
       onBack={() => setCurrentView('cases')}
       onLogout={handleLogout} 
@@ -139,7 +145,10 @@ function App() {
       onNavigateDashboard={() => setCurrentView('dashboard')}
       onNavigateCases={() => setCurrentView('cases')}
       onNavigateAdmissions={() => setCurrentView('admissions')}
-      onNavigateCaseDetails={() => setCurrentView('case_details')}
+      onNavigateCaseDetails={(id) => {
+        setSelectedCaseId(id);
+        setCurrentView('case_details');
+      }}
       onNavigateAllRecords={() => setCurrentView('all_records')}
       onNavigateVolunteers={() => setCurrentView('volunteers')}
     />
@@ -154,7 +163,10 @@ function App() {
       onNavigateCases={() => setCurrentView('cases')}
       onNavigateAdmissions={() => setCurrentView('admissions')}
       onNavigateRehabilitation={() => setCurrentView('rehabilitation')}
-      onNavigateCaseDetails={() => setCurrentView('case_details')}
+      onNavigateCaseDetails={(id) => {
+        setSelectedCaseId(id);
+        setCurrentView('case_details');
+      }}
       onNavigateVolunteers={() => setCurrentView('volunteers')}
     />
   }
@@ -169,7 +181,10 @@ function App() {
       onNavigateAdmissions={() => setCurrentView('admissions')}
       onNavigateRehabilitation={() => setCurrentView('rehabilitation')}
       onNavigateAllRecords={() => setCurrentView('all_records')}
-      onNavigateCaseDetails={() => setCurrentView('case_details')}
+      onNavigateCaseDetails={(id) => {
+        setSelectedCaseId(id);
+        setCurrentView('case_details');
+      }}
     />
   }
 

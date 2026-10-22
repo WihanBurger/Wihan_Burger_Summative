@@ -1,13 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import './CaseDetails.css';
 
-export default function CaseDetails({ onBack, onLogout, onNavigateProfile, onNavigateDashboard, onNavigateCases }) {
+export default function CaseDetails({ 
+  selectedCaseId,
+  currentUser,
+  onBack, 
+  onLogout, 
+  onNavigateProfile, 
+  onNavigateDashboard, 
+  onNavigateCases 
+}) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  
   const [activeTab, setActiveTab] = useState('overview');
+
+  const [caseData, setCaseData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const actualUser = currentUser?.user || currentUser || {};
+  const fullName = actualUser.name || 'Jeffry Burger';
+  const userRole = actualUser.role || 'Administrator';
+
+  const getInitials = (name) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name ? name.substring(0, 2).toUpperCase() : 'JB';
+  };
+
+  useEffect(() => {
+    if (selectedCaseId) {
+      fetchCaseDetails();
+    }
+  }, [selectedCaseId]);
+
+  const fetchCaseDetails = async () => {
+    try {
+      const token = localStorage.getItem('spottybird_token');
+      const response = await fetch(`http://127.0.0.1:5000/api/cases/${selectedCaseId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setCaseData(data);
+    } catch (error) {
+      console.error('Error fetching case details:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (isLoading) {
+    return <div style={{ padding: '3rem', textAlign: 'center' }}>Loading Case Details...</div>;
+  }
+
+  if (!caseData) {
+    return <div style={{ padding: '3rem', textAlign: 'center' }}>Case not found. Please go back and select a case.</div>;
+  }
 
   return (
     <div className="dashboard-wrapper">
@@ -37,14 +96,6 @@ export default function CaseDetails({ onBack, onLogout, onNavigateProfile, onNav
             <li><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
           </ul>
         </nav>
-
-        {isSidebarOpen && (
-          <div className="sidebar-whatsapp">
-            <div className="wa-icon">💬</div>
-            <h4>WhatsApp Intake</h4>
-            <button>Open WhatsApp ↗</button>
-          </div>
-        )}
       </aside>
 
       <main className="main-content">
@@ -62,13 +113,13 @@ export default function CaseDetails({ onBack, onLogout, onNavigateProfile, onNav
               🔔 <span className="badge">2</span>
             </div>
             
-            <div className="profile-menu" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
-              <img src="/mock-profile.jpg" alt="Karien" className="avatar" />
-              <div className="profile-info">
-                <strong>Karien Schmidt</strong>
-                <span>Executive Director</span>
+            <div className="profile-menu-pill" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
+              <div className="profile-pill-avatar">{getInitials(fullName)}</div>
+              <div className="profile-pill-info">
+                <strong>{fullName}</strong>
+                <span>{userRole}</span>
               </div>
-              <span className="dropdown-arrow">﹀</span>
+              <span className="profile-pill-arrow">⌄</span>
 
               {isProfileMenuOpen && (
                 <div className="dropdown-panel">
@@ -86,35 +137,37 @@ export default function CaseDetails({ onBack, onLogout, onNavigateProfile, onNav
 
         <div className="case-details-container">
           <div className="top-case-card">
-            <img src="/bird-mock.jpg" alt="Kookaburra" className="case-main-img" />
+            <img src={caseData.img || "/bird-mock.jpg"} alt={caseData.species} className="case-main-img" />
             <div className="case-main-info">
               <div className="case-title-row">
-                <h3>SBRC-2025-0185</h3>
-                <span className="status-pill rehabilitation">Rehabilitation</span>
-                <span className="priority-pill low">Low</span>
+                <h3>{caseData.caseId}</h3>
+                <span className={`status-pill ${caseData.status?.toLowerCase().replace(' ', '-')}`}>{caseData.status}</span>
+                <span className={`priority-pill ${caseData.urgency?.toLowerCase()}`}>{caseData.urgency}</span>
               </div>
-              <p className="animal-name"><strong>Laughing Kookaburra</strong><br/>Dacelo novaeguineae</p>
+              <p className="animal-name"><strong>{caseData.species}</strong><br/>{caseData.animal}</p>
               
               <div className="case-meta-grid">
                 <div className="meta-item">
                   <span className="icon">📅</span>
                   <div>
                     <strong>Reported</strong>
-                    <p>12 May 2025</p>
+                    <p>{formatDate(caseData.createdAt)}</p>
                   </div>
                 </div>
                 <div className="meta-item">
                   <span className="icon">📍</span>
                   <div>
                     <strong>Location</strong>
-                    <p>Open Window - Centurion</p>
+                    <p>{caseData.location}</p>
                   </div>
                 </div>
                 <div className="meta-item assignee">
-                  <img src="/mock-profile.jpg" alt="Assignee" className="assignee-avatar" />
+                  <div className="assignee-avatar-fallback">
+                    {caseData.assignee !== 'Unassigned' ? caseData.assignee.substring(0, 2).toUpperCase() : '?'}
+                  </div>
                   <div>
                     <strong>Assigned to:</strong>
-                    <p>Karien Schmidt</p>
+                    <p>{caseData.assignee}</p>
                   </div>
                 </div>
               </div>
@@ -142,16 +195,15 @@ export default function CaseDetails({ onBack, onLogout, onNavigateProfile, onNav
                 <div className="info-card">
                   <h4>Case Details</h4>
                   <div className="details-grid">
-                    <div className="detail-item"><strong>Animal Type</strong><p>Bird</p></div>
-                    <div className="detail-item"><strong>Incident Type</strong><p>Grounded / Unable to fly</p></div>
-                    <div className="detail-item"><strong>Age / Life Stage</strong><p>Juvenile (Fledgling)</p></div>
-                    <div className="detail-item"><strong>Date / Time Found</strong><p>15 May 2025, 2:45 PM</p></div>
+                    <div className="detail-item"><strong>Animal Type</strong><p>{caseData.animal}</p></div>
+                    <div className="detail-item"><strong>Days in Care</strong><p>{caseData.daysInCare}</p></div>
+                    <div className="detail-item"><strong>Age / Life Stage</strong><p>Pending Assessment</p></div>
+                    <div className="detail-item"><strong>Date / Time Logged</strong><p>{formatDateTime(caseData.createdAt)}</p></div>
                     <div className="detail-item"><strong>Sex (if known)</strong><p>Unknown</p></div>
-                    <div className="detail-item"><strong>Found By</strong><p>Emily Rogers</p></div>
+                    <div className="detail-item"><strong>Found By</strong><p>Public Report</p></div>
                     <div className="detail-item"><strong>Weight (if known)</strong><p>-</p></div>
-                    <div className="detail-item"><strong>Weather Conditions</strong><p>Overcast, 18°C</p></div>
-                    <div className="detail-item"><strong>Microchip / ID</strong><p>-</p></div>
-                    <div className="detail-item"><strong>Other Animals Involved</strong><p>No</p></div>
+                    <div className="detail-item"><strong>State Tracker</strong><p style={{textTransform: 'capitalize'}}>{caseData.state}</p></div>
+                    <div className="detail-item"><strong>Report Status</strong><p style={{textTransform: 'capitalize'}}>{caseData.report}</p></div>
                   </div>
                 </div>
                 <div className="info-card map-card">
@@ -159,10 +211,10 @@ export default function CaseDetails({ onBack, onLogout, onNavigateProfile, onNav
                   <div className="map-placeholder">
                     <div className="map-pin">📍</div>
                     <div className="map-overlay-text">
-                      <strong>Open Window - Centurion</strong>
-                      <p>1297 John Vorster Dr, Southdowns, Centurion, 0062</p>
+                      <strong>{caseData.location}</strong>
+                      <p>Approximate registered area</p>
                     </div>
-                    <a href="#" className="view-map-link">View in Maps</a>
+                    <a href={`https://maps.google.com/?q=${caseData.location}`} target="_blank" rel="noreferrer" className="view-map-link">View in Maps</a>
                   </div>
                 </div>
               </div>
@@ -172,38 +224,27 @@ export default function CaseDetails({ onBack, onLogout, onNavigateProfile, onNav
               <div className="grid-3-col">
                 <div className="info-card">
                   <h4>Incident Description</h4>
-                  <p className="text-body">Found a juvenile kookaburra on the ground near dense bushes. It didn't move when approached. Appears weak but alert. Unable to fly.</p>
-                  <p className="text-body mt-4">Note: No visible injuries or bleeding.</p>
+                  <p className="text-body">Data pending initial veterinary assessment. Animal currently logged as {caseData.status}.</p>
                 </div>
                 
                 <div className="info-card">
                   <h4>Current Condition</h4>
-                  <p className="text-body mb-4">Found a juvenile kookaburra on the ground near dense bushes. It didn't move when approached. Appears weak but alert. Unable to fly.</p>
+                  <p className="text-body mb-4">Awaiting full triage report.</p>
                   <h4 className="mt-4">Vitals (if recorded)</h4>
-                  <div className="vitals-row">
-                    <span>Temperature</span>
-                    <strong>38.2C</strong>
-                  </div>
-                  <div className="vitals-row">
-                    <span>Heart Rate</span>
-                    <strong>-</strong>
-                  </div>
+                  <div className="vitals-row"><span>Temperature</span><strong>-</strong></div>
+                  <div className="vitals-row"><span>Heart Rate</span><strong>-</strong></div>
                 </div>
 
                 <div className="info-card">
                   <h4>Actions Already Taken</h4>
                   <ul className="checklist completed">
-                    <li><span className="check">✓</span> Assessed on site</li>
-                    <li><span className="check">✓</span> Placed in ventilated carrier</li>
-                    <li><span className="check">✓</span> Kept in shaded area</li>
-                    <li><span className="check">✓</span> Offered small amount of water</li>
+                    <li><span className="check">✓</span> Logged into system</li>
+                    <li><span className="check">✓</span> Urgency flagged as {caseData.urgency}</li>
                   </ul>
-
                   <h4 className="mt-4">Need to Do :</h4>
                   <ul className="checklist pending">
-                    <li><span className="circle"></span> Need to do here</li>
-                    <li><span className="circle"></span> Need to do here</li>
-                    <li><span className="circle"></span> Need to do here</li>
+                    <li><span className="circle"></span> Complete initial triage</li>
+                    <li><span className="circle"></span> Update exact weight and vitals</li>
                   </ul>
                 </div>
               </div>
@@ -214,21 +255,10 @@ export default function CaseDetails({ onBack, onLogout, onNavigateProfile, onNav
                 <div className="info-card">
                   <h4>Photos and Attachments</h4>
                   <div className="photo-grid">
-                    <img src="/bird-mock.jpg" alt="Attachment 1" />
-                    <img src="/bird-mock.jpg" alt="Attachment 2" />
-                    <div className="more-photos">+3</div>
-                  </div>
-                  <h4 className="mt-4">Export Images</h4>
-                  <div className="export-box">
-                    <span className="icon">🖼️</span>
-                    <div className="export-text">
-                      <strong>IMG_20250516_1442.jpg</strong>
-                      <p>Maximum size: 10MB - Minimum size 5MB</p>
-                    </div>
-                    <span className="download-icon">📥</span>
+                    <img src={caseData.img || "/bird-mock.jpg"} alt="Attachment 1" />
+                    <div className="more-photos">+</div>
                   </div>
                 </div>
-
                 <div className="info-card chat-card">
                   <div className="chat-header">
                     <h4>WhatsApp Thread</h4>
@@ -236,16 +266,7 @@ export default function CaseDetails({ onBack, onLogout, onNavigateProfile, onNav
                   </div>
                   <div className="chat-window">
                     <div className="chat-bubble received">
-                      <p>Hi, I found this kookaburra on the ground. It's not flying and seems weak.</p>
-                      <span className="time">2:45 PM</span>
-                    </div>
-                    <div className="chat-bubble sent">
-                      <p>Thanks Emily. Is it injured or bleeding anywhere?</p>
-                      <span className="time">2:47 PM</span>
-                    </div>
-                    <div className="chat-bubble received">
-                      <p>No visible injuries, just sitting on the ground near the bush.</p>
-                      <span className="time">2:48 PM</span>
+                      <p>Case {caseData.caseId} opened on {formatDate(caseData.createdAt)}</p>
                     </div>
                   </div>
                   <div className="chat-input-area">
@@ -262,9 +283,11 @@ export default function CaseDetails({ onBack, onLogout, onNavigateProfile, onNav
       {isLogoutModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <img src="/mock-profile.jpg" alt="Karien Schmidt" className="modal-avatar" />
-            <h3>Karien Schmidt</h3>
-            <p className="modal-role">Executive Director</p>
+            <div className="modal-avatar initials-only" style={{ background: '#102a1d', color: 'white', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1rem' }}>
+              {getInitials(fullName)}
+            </div>
+            <h3>{fullName}</h3>
+            <p className="modal-role">{userRole}</p>
             <p className="modal-prompt">Are you sure you want to log out?</p>
             <p className="modal-subtext">Accepting it will take you back to the log in page.</p>
             <div className="modal-actions">

@@ -13,6 +13,17 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+router.get('/:id', protect, async (req, res) => {
+  try {
+    const singleCase = await Case.findById(req.params.id);
+    if (!singleCase) return res.status(404).json({ message: 'Case not found' });
+    res.json(singleCase);
+  } catch (error) {
+    console.error('Error fetching single case:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 router.post('/', protect, async (req, res) => {
   try {
     const newCase = new Case(req.body);
