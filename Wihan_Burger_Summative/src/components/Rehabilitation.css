@@ -306,3 +306,28 @@
 .day.sun-range {
   color: white;
 }
+
+.mt-3 {
+  margin-top: 1rem;
+}
+
+.status-banner {
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.status-banner.success {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.status-banner.error {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}

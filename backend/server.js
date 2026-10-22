@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import caseRoutes from './routes/cases.js';
+import userRoutes from './routes/users.js';
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.use(cors());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/cases', caseRoutes);
+app.use('/api/users', userRoutes);
 
 const PORT = process.env.PORT || 5000;
 

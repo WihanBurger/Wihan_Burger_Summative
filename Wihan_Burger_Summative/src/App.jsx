@@ -34,6 +34,11 @@ function App() {
     setCurrentView('dashboard')
   }
 
+  const handleUpdateUser = (updatedUserData) => {
+    setCurrentUser(updatedUserData)
+    localStorage.setItem('spottybird_currentUser', JSON.stringify(updatedUserData))
+  }
+
   const handleLogout = () => {
     localStorage.removeItem('spottybird_currentUser')
     localStorage.removeItem('spottybird_token')
@@ -71,6 +76,7 @@ function App() {
   if (currentView === 'profile') {
     return <ProfileSettings 
       currentUser={currentUser}
+      onUpdateUser={handleUpdateUser}
       onBack={() => setCurrentView('dashboard')} 
       onLogout={handleLogout} 
       onNavigateDashboard={() => setCurrentView('dashboard')}
