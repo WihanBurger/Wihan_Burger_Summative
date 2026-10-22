@@ -1,25 +1,158 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import './Cases.css';
 
-export default function Cases({ onLogout, onNavigateProfile, onNavigateDashboard, onNavigateCaseDetails }) {
+export default function Cases({ 
+  currentUser, 
+  onLogout, 
+  onNavigateProfile, 
+  onNavigateDashboard, 
+  onNavigateCaseDetails 
+}) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  const mockCases = [
-    { id: 'SBRC-2025-0187', animal: 'Bird', location: 'Rooihuiskraal, Centurion', status: 'New Report', priority: '-', assignee: '-', time: 'Now', state: 'pending', report: 'pending' },
-    { id: 'SBRC-2025-0186', animal: 'Brush-tailed Possum', location: 'Irene, Centurion', status: 'Info Missing', priority: '-', assignee: '-', time: '32 min ago', state: 'pending', report: 'pending' },
-    { id: 'SBRC-2025-0185', animal: '-', location: 'Midstream Estate', status: 'Rehabilitation', priority: 'Medium', assignee: 'Tahlia M.', time: '11 min ago', state: 'accepted', report: 'open' },
-    { id: 'SBRC-2025-0184', animal: 'Mammal', location: 'Eldoraigne, Centurion', status: 'New Report', priority: '-', assignee: '-', time: '1 hr ago', state: 'pending', report: 'pending' },
-    { id: 'SBRC-2025-0183', animal: 'Echidna', location: 'Rooihuiskraal, Centurion', status: 'New Report', priority: 'High', assignee: 'Sarah J.', time: '15 min ago', state: 'accepted', report: 'open' },
-    { id: 'SBRC-2025-0182', animal: 'Brush-tailed Possum', location: 'Irene, Centurion', status: 'Info Missing', priority: '-', assignee: 'Dr. Keira B.', time: '32 min ago', state: 'pending', report: 'pending' },
-    { id: 'SBRC-2025-0181', animal: 'Other', location: 'Cape Town, Seapoint', status: 'Assessment', priority: 'Low', assignee: '-', time: '11 min ago', state: 'denied', report: 'refer' },
-    { id: 'SBRC-2025-0180', animal: 'Tawny Frogmouth', location: 'Eldoraigne, Centurion', status: 'New Report', priority: '-', assignee: '-', time: '1 hr ago', state: 'pending', report: 'pending' },
-    { id: 'SBRC-2025-0179', animal: 'Reptile', location: 'Cape Town, Durbaville', status: 'New Report', priority: '-', assignee: '-', time: '15 min ago', state: 'denied', report: 'refer' },
-    { id: 'SBRC-2025-0178', animal: 'Eastern Rosella', location: 'Rooihuiskraal, Centurion', status: 'New Report', priority: 'High', assignee: '-', time: '3 days ago', state: 'pending', report: 'pending' }
-  ];
+  const [cases, setCases] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [calendarView, setCalendarView] = useState(new Date(2026, 4, 1));
+  const [startDate, setStartDate] = useState(new Date(2026, 4, 12));
+  const [endDate, setEndDate] = useState(new Date(2026, 4, 18));
+  const [selectionStep, setSelectionStep] = useState('start');
+
+  const actualUser = currentUser?.user || currentUser || {};
+  const fullName = actualUser.name || 'Jeffry Burger';
+  const userRole = actualUser.role || 'Administrator';
+
+  const getInitials = (name) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name ? name.substring(0, 2).toUpperCase() : 'JB';
+  };
+
+  useEffect(() => {
+    fetchCases();
+  }, []);
+
+  const fetchCases = async () => {
+    try {
+      const token = localStorage.getItem('spottybird_token');
+      const response = await fetch('http://127.0.0.1:5000/api/cases', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setCases(data);
+    } catch (error) {
+      console.error('Error fetching cases:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAccept = async (e, id) => {
+    e.stopPropagation(); 
+    updateCaseState(id, 'accepted', 'open', fullName);
+  };
+
+  const handleDeny = async (e, id) => {
+    e.stopPropagation();
+    updateCaseState(id, 'denied', 'refer', 'Unassigned');
+  };
+
+  const updateCaseState = async (id, newState, newReport, newAssignee) => {
+    try {
+      const token = localStorage.getItem('spottybird_token');
+      setCases(cases.map(c => 
+        c._id === id 
+          ? { ...c, state: newState, report: newReport, assignee: newAssignee, status: newState === 'accepted' ? 'Rehabilitation' : 'Assessment' } 
+          : c
+      ));
+
+      await fetch(`http://127.0.0.1:5000/api/cases/${id}/state`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          state: newState,
+          report: newReport,
+          assignee: newAssignee,
+          status: newState === 'accepted' ? 'Rehabilitation' : 'Assessment'
+        })
+      });
+    } catch (error) {
+      console.error('Failed to update case:', error);
+      fetchCases();
+    }
+  };
+
+  const nextMonth = (e) => { e.stopPropagation(); setCalendarView(new Date(calendarView.getFullYear(), calendarView.getMonth() + 1, 1)); };
+  const prevMonth = (e) => { e.stopPropagation(); setCalendarView(new Date(calendarView.getFullYear(), calendarView.getMonth() - 1, 1)); };
+
+  const handleDayClick = (day) => {
+    const clickedDate = new Date(calendarView.getFullYear(), calendarView.getMonth(), day);
+    if (selectionStep === 'start') {
+      setStartDate(clickedDate);
+      setEndDate(null);
+      setSelectionStep('end');
+    } else {
+      if (clickedDate < startDate) {
+        setStartDate(clickedDate);
+        setEndDate(null);
+      } else {
+        setEndDate(clickedDate);
+        setSelectionStep('start');
+        setTimeout(() => setIsCalendarOpen(false), 200);
+      }
+    }
+  };
+
+  const renderCalendarDays = () => {
+    const year = calendarView.getFullYear();
+    const month = calendarView.getMonth();
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    let days = [];
+
+    for (let i = firstDayIndex; i > 0; i--) {
+      days.push(<div key={`prev-${i}`} className="day prev-month">{daysInPrevMonth - i + 1}</div>);
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const thisDate = new Date(year, month, i);
+      let className = "day";
+
+      if (thisDate.getDay() === 0) className += " sun";
+
+      if (startDate && thisDate.getTime() === startDate.getTime()) className += " range-start";
+      if (endDate && thisDate.getTime() === endDate.getTime()) className += " range-end";
+      if (startDate && endDate && thisDate > startDate && thisDate < endDate) className += " range";
+
+      days.push(<div key={i} className={className} onClick={() => handleDayClick(i)}>{i}</div>);
+    }
+    return days;
+  };
+
+  const formatDate = (date) => {
+    if (!date) return '';
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatButtonText = () => {
+    if (startDate && endDate) return `${formatDate(startDate).slice(0,6)} - ${formatDate(endDate)}`;
+    if (startDate) return `${formatDate(startDate)} - Select End`;
+    return "Select Date Range";
+  };
+
+  const formatTime = (dateString) => {
+    if (!dateString) return 'Just now';
+    return new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <div className="dashboard-wrapper">
@@ -49,14 +182,6 @@ export default function Cases({ onLogout, onNavigateProfile, onNavigateDashboard
             <li><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
           </ul>
         </nav>
-
-        {isSidebarOpen && (
-          <div className="sidebar-whatsapp">
-            <div className="wa-icon">💬</div>
-            <h4>WhatsApp Intake</h4>
-            <button>Open WhatsApp ↗</button>
-          </div>
-        )}
       </aside>
 
       <main className="main-content">
@@ -69,17 +194,17 @@ export default function Cases({ onLogout, onNavigateProfile, onNavigateDashboard
           <div className="header-actions">
              <div className="date-picker-wrapper">
                <div className="date-picker-btn" onClick={() => setIsCalendarOpen(!isCalendarOpen)}>
-                <span>📅 12 May - 18 May, 2025</span>
+                <span>📅 {formatButtonText()}</span>
                 <span>{isCalendarOpen ? '⌃' : '⌄'}</span>
               </div>
               
               {isCalendarOpen && (
                 <div className="calendar-popup">
                   <div className="calendar-header">
-                    <span>May 2025</span>
+                    <span>{calendarView.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</span>
                     <div className="calendar-nav">
-                      <button>&lt;</button>
-                      <button>&gt;</button>
+                      <button onClick={prevMonth}>&lt;</button>
+                      <button onClick={nextMonth}>&gt;</button>
                     </div>
                   </div>
                   <div className="calendar-grid">
@@ -90,38 +215,7 @@ export default function Cases({ onLogout, onNavigateProfile, onNavigateDashboard
                     <div className="day-name">Thu</div>
                     <div className="day-name">Fri</div>
                     <div className="day-name">Sat</div>
-                    
-                    <div className="day prev-month">27</div>
-                    <div className="day prev-month">28</div>
-                    <div className="day prev-month">29</div>
-                    <div className="day prev-month">30</div>
-                    <div className="day">1</div>
-                    <div className="day">2</div>
-                    <div className="day">3</div>
-                    
-                    <div className="day sun">4</div>
-                    <div className="day">5</div>
-                    <div className="day">6</div>
-                    <div className="day">7</div>
-                    <div className="day">8</div>
-                    <div className="day">9</div>
-                    <div className="day">10</div>
-
-                    <div className="day sun">11</div>
-                    <div className="day range-start">12</div>
-                    <div className="day range">13</div>
-                    <div className="day range">14</div>
-                    <div className="day range">15</div>
-                    <div className="day range">16</div>
-                    <div className="day range">17</div>
-                    
-                    <div className="day range-end sun-range">18</div>
-                    <div className="day">19</div>
-                    <div className="day">20</div>
-                    <div className="day">21</div>
-                    <div className="day">22</div>
-                    <div className="day">23</div>
-                    <div className="day">24</div>
+                    {renderCalendarDays()}
                   </div>
                 </div>
               )}
@@ -131,13 +225,13 @@ export default function Cases({ onLogout, onNavigateProfile, onNavigateDashboard
               🔔 <span className="badge">1</span>
             </div>
             
-            <div className="profile-menu" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
-              <img src="/mock-profile.jpg" alt="Karien" className="avatar" />
-              <div className="profile-info">
-                <strong>Karien Schmidt</strong>
-                <span>Executive Director</span>
+            <div className="profile-menu-pill" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
+              <div className="profile-pill-avatar">{getInitials(fullName)}</div>
+              <div className="profile-pill-info">
+                <strong>{fullName}</strong>
+                <span>{userRole}</span>
               </div>
-              <span className="dropdown-arrow">﹀</span>
+              <span className="profile-pill-arrow">⌄</span>
 
               {isProfileMenuOpen && (
                 <div className="dropdown-panel">
@@ -153,9 +247,9 @@ export default function Cases({ onLogout, onNavigateProfile, onNavigateDashboard
           <div className="filters-row">
             <select><option>Animal Type</option><option>Mammal</option><option>Reptile</option><option>Bird</option></select>
             <select><option>Location</option><option>Centurion</option><option>Midstream</option></select>
-            <select><option>Urgency</option><option>High</option><option>Medium</option><option>Low</option></select>
+            <select><option>Medium</option><option>High</option><option>Critical</option></select>
             <select><option>Status</option><option>Accepted</option><option>Denied</option></select>
-            <select><option>Assignee</option><option>Karien Schmidt</option></select>
+            <select><option>Assignee</option><option>{fullName}</option></select>
             
             <div className="search-bar">
               <span className="search-icon">🔍</span>
@@ -177,55 +271,57 @@ export default function Cases({ onLogout, onNavigateProfile, onNavigateDashboard
              </div>
 
              <div className="table-body">
-               {mockCases.map((caseItem, index) => (
-                 <div className="table-row clickable-row" key={index} onClick={onNavigateCaseDetails}>
-                   <div className="col-id fw-600">{caseItem.id}</div>
-                   <div className="col-animal">{caseItem.animal}</div>
-                   <div className="col-location">{caseItem.location}</div>
-                   <div className="col-status">
-                     <span className={`status-pill ${caseItem.status.toLowerCase().replace(' ', '-')}`}>
-                       {caseItem.status}
-                     </span>
-                   </div>
-                   <div className="col-priority">
-                     {caseItem.priority !== '-' && (
-                       <span className={`priority-pill ${caseItem.priority.toLowerCase()}`}>
-                         {caseItem.priority}
+               {isLoading ? (
+                 <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>Loading facility cases...</div>
+               ) : cases.length === 0 ? (
+                 <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>No active cases found in the database.</div>
+               ) : (
+                 cases.map((caseItem) => (
+                   <div className="table-row clickable-row" key={caseItem._id} onClick={onNavigateCaseDetails}>
+                     <div className="col-id fw-600">{caseItem.caseId}</div>
+                     <div className="col-animal">{caseItem.animal}</div>
+                     <div className="col-location">{caseItem.location}</div>
+                     <div className="col-status">
+                       <span className={`status-text ${caseItem.status?.toLowerCase().replace(' ', '-')}`}>
+                         {caseItem.status}
                        </span>
-                     )}
-                     {caseItem.priority === '-' && '-'}
+                     </div>
+                     <div className="col-priority">
+                       {caseItem.urgency !== '-' && caseItem.urgency !== 'Unassigned' ? (
+                         <span className={`priority-pill ${caseItem.urgency.toLowerCase()}`}>
+                           {caseItem.urgency}
+                         </span>
+                       ) : '-'}
+                     </div>
+                     <div className="col-assignee">{caseItem.assignee}</div>
+                     <div className="col-updated">{formatTime(caseItem.updatedAt)}</div>
+                     
+                     <div className="col-state" onClick={(e) => e.stopPropagation()}>
+                       {caseItem.state === 'pending' && (
+                         <div className="action-buttons">
+                           <button className="btn-accept" onClick={(e) => handleAccept(e, caseItem._id)}>Accept</button>
+                           <button className="btn-deny" onClick={(e) => handleDeny(e, caseItem._id)}>Deny</button>
+                         </div>
+                       )}
+                     </div>
+                     
+                     <div className="col-report" onClick={(e) => e.stopPropagation()}>
+                       <button className={`report-btn ${caseItem.report}`}>
+                         {caseItem.report === 'pending' ? 'State Pending' : caseItem.report === 'open' ? 'Open Report' : 'Refer Case'}
+                       </button>
+                     </div>
                    </div>
-                   <div className="col-assignee">{caseItem.assignee}</div>
-                   <div className="col-updated">{caseItem.time}</div>
-                   <div className="col-state" onClick={(e) => e.stopPropagation()}>
-                     {caseItem.state === 'pending' && (
-                       <div className="action-buttons">
-                         <button className="btn-accept">Accept</button>
-                         <button className="btn-deny">Deny</button>
-                       </div>
-                     )}
-                     {caseItem.state === 'accepted' && <span className="state-pill accepted">Accepted</span>}
-                     {caseItem.state === 'denied' && <span className="state-pill denied">Denied</span>}
-                   </div>
-                   <div className="col-report" onClick={(e) => e.stopPropagation()}>
-                     <button className={`report-btn ${caseItem.report}`}>
-                       {caseItem.report === 'pending' ? 'State Pending' : caseItem.report === 'open' ? 'Open Report' : 'Refer Case'}
-                     </button>
-                   </div>
-                 </div>
-               ))}
+                 ))
+               )}
              </div>
           </div>
           
           <div className="pagination">
-            <span>Showing 10 of 28 Cases</span>
+            <span>Showing {cases.length} Cases</span>
             <div className="page-controls">
               <button disabled>&lt;</button>
               <button className="active">1</button>
-              <button>2</button>
-              <button>3</button>
-              <button>...</button>
-              <button>&gt;</button>
+              <button disabled>&gt;</button>
             </div>
           </div>
         </div>
@@ -234,9 +330,11 @@ export default function Cases({ onLogout, onNavigateProfile, onNavigateDashboard
       {isLogoutModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <img src="/mock-profile.jpg" alt="Karien Schmidt" className="modal-avatar" />
-            <h3>Karien Schmidt</h3>
-            <p className="modal-role">Executive Director</p>
+            <div className="modal-avatar initials-only" style={{ background: '#102a1d', color: 'white', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1rem' }}>
+              {getInitials(fullName)}
+            </div>
+            <h3>{fullName}</h3>
+            <p className="modal-role">{userRole}</p>
             <p className="modal-prompt">Are you sure you want to log out?</p>
             <p className="modal-subtext">Accepting it will take you back to the log in page.</p>
             <div className="modal-actions">
