@@ -1,20 +1,116 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import './Rehabilitation.css';
 
-export default function Rehabilitation({ onLogout, onNavigateProfile, onNavigateDashboard, onNavigateCases, onNavigateAdmissions, onNavigateCaseDetails }) {
+export default function Rehabilitation({ 
+  currentUser,
+  onLogout, 
+  onNavigateProfile, 
+  onNavigateDashboard, 
+  onNavigateCases, 
+  onNavigateAdmissions, 
+  onNavigateCaseDetails 
+}) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [rehabCases, setRehabCases] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [calendarView, setCalendarView] = useState(new Date()); 
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [selectionStep, setSelectionStep] = useState('start');
 
-  const mockRehabCases = [
-    { animal: 'Laughing Kookaburra', species: 'Dacelo novaeguineae', assignee: 'Sarah J.', enclosure: 'Aviary 2', release: 'Today. 10:00 AM', status: 'In Care', days: 12, img: '/bird-mock.jpg' },
-    { animal: 'Eastern Rosella', species: 'Platycercus eximius', assignee: 'Sarah J.', enclosure: 'Aviary 25', release: 'Today. 08:00 AM', status: 'Critical', days: 2, img: '/bird-mock.jpg' },
-    { animal: 'Brush-tailed Possum', species: 'Trichosurus vulpecula', assignee: 'Mia D.', enclosure: 'Cage 4', release: 'Today. 11:00 AM', status: 'Ready for realease', days: 5, img: '/possum-mock.jpg' },
-    { animal: 'Echidna', species: 'Tachyglossus aculeatus', assignee: 'Dr. James F', enclosure: 'Cage 44', release: 'Today. 9:00 AM', status: 'Ready for realease', days: 8, img: '/echidna-mock.jpg' },
-    { animal: 'Grey Butcherbird', species: 'Cracticus torquatus', assignee: 'Dr. Giet F', enclosure: 'Cage 45', release: 'Today. 10:00 AM', status: 'Critical', days: 33, img: '/bird-mock.jpg' }
-  ];
+  const actualUser = currentUser?.user || currentUser || {};
+  const fullName = actualUser.name || 'Jeffry Burger';
+  const userRole = actualUser.role || 'Administrator';
+
+  const getInitials = (name) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name ? name.substring(0, 2).toUpperCase() : 'JB';
+  };
+
+  useEffect(() => {
+    fetchRehabCases();
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 6);
+    setStartDate(start);
+    setEndDate(end);
+  }, []);
+
+  const fetchRehabCases = async () => {
+    try {
+      const token = localStorage.getItem('spottybird_token');
+      const response = await fetch('http://127.0.0.1:5000/api/cases', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      const activeRehab = data.filter(c => c.status === 'Rehabilitation' || c.state === 'accepted');
+      setRehabCases(activeRehab);
+    } catch (error) {
+      console.error('Error fetching rehab cases:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const criticalCount = rehabCases.filter(c => c.urgency === 'Critical' || c.urgency === 'High').length;
+  const inCareCount = rehabCases.length;
+  const nextMonth = (e) => { e.stopPropagation(); setCalendarView(new Date(calendarView.getFullYear(), calendarView.getMonth() + 1, 1)); };
+  const prevMonth = (e) => { e.stopPropagation(); setCalendarView(new Date(calendarView.getFullYear(), calendarView.getMonth() - 1, 1)); };
+
+  const handleDayClick = (day) => {
+    const clickedDate = new Date(calendarView.getFullYear(), calendarView.getMonth(), day);
+    if (selectionStep === 'start') {
+      setStartDate(clickedDate);
+      setEndDate(null);
+      setSelectionStep('end');
+    } else {
+      if (clickedDate < startDate) {
+        setStartDate(clickedDate);
+        setEndDate(null);
+      } else {
+        setEndDate(clickedDate);
+        setSelectionStep('start');
+        setTimeout(() => setIsCalendarOpen(false), 200); 
+      }
+    }
+  };
+
+  const renderCalendarDays = () => {
+    const year = calendarView.getFullYear();
+    const month = calendarView.getMonth();
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    let days = [];
+    for (let i = firstDayIndex; i > 0; i--) {
+      days.push(<div key={`prev-${i}`} className="day prev-month">{daysInPrevMonth - i + 1}</div>);
+    }
+    
+    for (let i = 1; i <= daysInMonth; i++) {
+      const thisDate = new Date(year, month, i);
+      let className = "day";
+      if (thisDate.getDay() === 0) className += " sun";
+      if (startDate && thisDate.getTime() === startDate.getTime()) className += " range-start";
+      if (endDate && thisDate.getTime() === endDate.getTime()) className += " range-end sun-range";
+      if (startDate && endDate && thisDate > startDate && thisDate < endDate) className += " range";
+
+      days.push(<div key={i} className={className} onClick={() => handleDayClick(i)}>{i}</div>);
+    }
+    return days;
+  };
+
+  const formatButtonText = () => {
+    const formatStr = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (startDate && endDate) return `${formatStr(startDate).slice(0,6)} - ${formatStr(endDate)}`;
+    if (startDate) return `${formatStr(startDate)} - Select End`;
+    return "Select Date Range";
+  };
 
   return (
     <div className="dashboard-wrapper">
@@ -58,23 +154,23 @@ export default function Rehabilitation({ onLogout, onNavigateProfile, onNavigate
         <header className="top-header">
           <div>
             <h2 className="page-title">Rehabilitation</h2>
-            <p className="page-subtitle">Case identification numbers, locations status and priorities all in one place</p>
+            <p className="page-subtitle">Manage animal recovery, enclosures and release schedules.</p>
           </div>
           
           <div className="header-actions">
              <div className="date-picker-wrapper">
                <div className="date-picker-btn" onClick={() => setIsCalendarOpen(!isCalendarOpen)}>
-                <span>📅 12 May - 18 May, 2025</span>
+                <span>📅 {formatButtonText()}</span>
                 <span>{isCalendarOpen ? '⌃' : '⌄'}</span>
               </div>
               
               {isCalendarOpen && (
                 <div className="calendar-popup">
                   <div className="calendar-header">
-                    <span>May 2025</span>
+                    <span>{calendarView.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</span>
                     <div className="calendar-nav">
-                      <button>&lt;</button>
-                      <button>&gt;</button>
+                      <button onClick={prevMonth}>&lt;</button>
+                      <button onClick={nextMonth}>&gt;</button>
                     </div>
                   </div>
                   <div className="calendar-grid">
@@ -85,38 +181,7 @@ export default function Rehabilitation({ onLogout, onNavigateProfile, onNavigate
                     <div className="day-name">Thu</div>
                     <div className="day-name">Fri</div>
                     <div className="day-name">Sat</div>
-                    
-                    <div className="day prev-month">27</div>
-                    <div className="day prev-month">28</div>
-                    <div className="day prev-month">29</div>
-                    <div className="day prev-month">30</div>
-                    <div className="day">1</div>
-                    <div className="day">2</div>
-                    <div className="day">3</div>
-                    
-                    <div className="day sun">4</div>
-                    <div className="day">5</div>
-                    <div className="day">6</div>
-                    <div className="day">7</div>
-                    <div className="day">8</div>
-                    <div className="day">9</div>
-                    <div className="day">10</div>
-
-                    <div className="day sun">11</div>
-                    <div className="day range-start">12</div>
-                    <div className="day range">13</div>
-                    <div className="day range">14</div>
-                    <div className="day range">15</div>
-                    <div className="day range">16</div>
-                    <div className="day range">17</div>
-                    
-                    <div className="day range-end sun-range">18</div>
-                    <div className="day">19</div>
-                    <div className="day">20</div>
-                    <div className="day">21</div>
-                    <div className="day">22</div>
-                    <div className="day">23</div>
-                    <div className="day">24</div>
+                    {renderCalendarDays()}
                   </div>
                 </div>
               )}
@@ -125,14 +190,13 @@ export default function Rehabilitation({ onLogout, onNavigateProfile, onNavigate
             <div className="notification-bell">
               🔔 <span className="badge">1</span>
             </div>
-            
-            <div className="profile-menu" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
-              <img src="/mock-profile.jpg" alt="Karien" className="avatar" />
-              <div className="profile-info">
-                <strong>Karien Schmidt</strong>
-                <span>Executive Director</span>
+            <div className="profile-menu-pill" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
+              <div className="profile-pill-avatar">{getInitials(fullName)}</div>
+              <div className="profile-pill-info">
+                <strong>{fullName}</strong>
+                <span>{userRole}</span>
               </div>
-              <span className="dropdown-arrow">﹀</span>
+              <span className="profile-pill-arrow">⌄</span>
 
               {isProfileMenuOpen && (
                 <div className="dropdown-panel">
@@ -150,56 +214,48 @@ export default function Rehabilitation({ onLogout, onNavigateProfile, onNavigate
 
         <div className="rehab-kpi-grid">
           <div className="rkpi-card border-green">
-            <div className="rkpi-icon-circle green-circle">
-              <span className="icon">🚐</span>
-            </div>
+            <div className="rkpi-icon-circle green-circle"><span className="icon">🚐</span></div>
             <div className="rkpi-data">
               <p>In Care</p>
-              <h3>31</h3>
-              <span className="rkpi-trend trend-blue">• Arriving Soon</span>
+              <h3>{inCareCount}</h3>
+              <span className="rkpi-trend trend-blue">• Active Rehabilitation</span>
             </div>
           </div>
           
           <div className="rkpi-card border-red">
-            <div className="rkpi-icon-circle red-circle">
-              <span className="icon">📄</span>
-            </div>
+            <div className="rkpi-icon-circle red-circle"><span className="icon">📄</span></div>
             <div className="rkpi-data">
-              <p>Critical</p>
-              <h3>5</h3>
-              <span className="rkpi-trend trend-red">+6 from yesterday</span>
+              <p>Critical Priority</p>
+              <h3>{criticalCount}</h3>
+              <span className="rkpi-trend trend-red">Requires attention</span>
             </div>
           </div>
 
           <div className="rkpi-card border-orange">
-            <div className="rkpi-icon-circle orange-circle">
-              <span className="icon">🦜</span>
-            </div>
+            <div className="rkpi-icon-circle orange-circle"><span className="icon">🦜</span></div>
             <div className="rkpi-data">
-              <p>Ready fo Release</p>
-              <h3>8</h3>
-              <span className="rkpi-trend trend-orange">+3 Needs Response</span>
+              <p>Ready for Release</p>
+              <h3>0</h3>
+              <span className="rkpi-trend trend-orange">Pending vet clearance</span>
             </div>
           </div>
 
           <div className="rkpi-card border-yellow">
-            <div className="rkpi-icon-circle yellow-circle">
-              <span className="icon">❓</span>
-            </div>
+            <div className="rkpi-icon-circle yellow-circle"><span className="icon">❓</span></div>
             <div className="rkpi-data">
               <p>Info Pending</p>
-              <h3>6</h3>
-              <span className="rkpi-trend trend-yellow">+3 Needs Response</span>
+              <h3>0</h3>
+              <span className="rkpi-trend trend-yellow">All systems nominal</span>
             </div>
           </div>
         </div>
 
         <div className="rehab-table-container">
           <div className="table-header-row">
-            <h3>Rehabilitation Cases</h3>
+            <h3>Active Rehabilitation Cases</h3>
             <div className="search-bar">
               <span className="search-icon">🔍</span>
-              <input type="text" placeholder="Search this list..." />
+              <input type="text" placeholder="Search active rehab cases..." />
             </div>
           </div>
 
@@ -209,51 +265,51 @@ export default function Rehabilitation({ onLogout, onNavigateProfile, onNavigate
                <div className="rcol-assigned">Assigned</div>
                <div className="rcol-enclosure">Enclosure</div>
                <div className="rcol-release">Release Date</div>
-               <div className="rcol-status">Status</div>
+               <div className="rcol-status">Urgency</div>
                <div className="rcol-days">Days in Care</div>
                <div className="rcol-actions">Actions</div>
              </div>
 
              <div className="rtable-body">
-               {mockRehabCases.map((item, index) => (
-                 <div className="rtable-row" key={index}>
-                   <div className="rcol-animal">
-                     <img src={item.img} alt={item.animal} className="animal-thumb" onError={(e) => e.target.src='/mock-profile.jpg'} />
-                     <div className="animal-info">
-                       <strong>{item.animal}</strong>
-                       <span>{item.species}</span>
+               {isLoading ? (
+                 <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>Loading rehabilitation records...</div>
+               ) : rehabCases.length === 0 ? (
+                 <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>No active cases in rehabilitation.</div>
+               ) : (
+                 rehabCases.map((item) => (
+                   <div className="rtable-row" key={item._id}>
+                     <div className="rcol-animal">
+                       <img src={item.img || '/bird-mock.jpg'} alt={item.species} className="animal-thumb" />
+                       <div className="animal-info">
+                         <strong>{item.species || item.animal}</strong>
+                         <span>{item.caseId}</span>
+                       </div>
+                     </div>
+                     <div className="rcol-assigned fw-600">{item.assignee}</div>
+                     <div className="rcol-enclosure fw-600">Pending Assignment</div>
+                     <div className="rcol-release fw-600 text-gray">TBD</div>
+                     <div className="rcol-status fw-600">
+                       <span className={`priority-pill ${item.urgency?.toLowerCase()}`}>{item.urgency}</span>
+                     </div>
+                     <div className="rcol-days fw-600">{item.daysInCare || 0}</div>
+                     <div className="rcol-actions">
+                       <button className="rehab-action-btn" onClick={(e) => { e.stopPropagation(); onNavigateCaseDetails(item._id); }}>
+                         <span className="icon">📊</span>
+                         Open<br/>Case Details
+                       </button>
                      </div>
                    </div>
-                   <div className="rcol-assigned fw-600">{item.assignee}</div>
-                   <div className="rcol-enclosure fw-600">{item.enclosure}</div>
-                   <div className="rcol-release fw-600">{item.release}</div>
-                   <div className="rcol-status fw-600">{item.status}</div>
-                   <div className="rcol-days fw-600">{item.days}</div>
-                   <div className="rcol-actions">
-                     <button className="rehab-action-btn" onClick={onNavigateCaseDetails}>
-                       <span className="icon">📊</span>
-                       Open<br/>Case Details
-                     </button>
-                     <button className="rehab-action-btn">
-                       <span className="icon">⊕</span>
-                       Add to<br/>information
-                     </button>
-                   </div>
-                 </div>
-               ))}
+                 ))
+               )}
              </div>
           </div>
           
           <div className="pagination">
-            <span>Showing {mockRehabCases.length} of 28 Cases</span>
+            <span>Showing {rehabCases.length} Active Cases</span>
             <div className="page-controls">
               <button disabled>&lt;</button>
               <button className="active">1</button>
-              <button>2</button>
-              <button>3</button>
-              <button>4</button>
-              <button>...</button>
-              <button>&gt;</button>
+              <button disabled>&gt;</button>
             </div>
           </div>
         </div>
@@ -262,9 +318,11 @@ export default function Rehabilitation({ onLogout, onNavigateProfile, onNavigate
       {isLogoutModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <img src="/mock-profile.jpg" alt="Karien Schmidt" className="modal-avatar" />
-            <h3>Karien Schmidt</h3>
-            <p className="modal-role">Executive Director</p>
+            <div className="modal-avatar initials-only" style={{ background: '#102a1d', color: 'white', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1rem' }}>
+              {getInitials(fullName)}
+            </div>
+            <h3>{fullName}</h3>
+            <p className="modal-role">{userRole}</p>
             <p className="modal-prompt">Are you sure you want to log out?</p>
             <p className="modal-subtext">Accepting it will take you back to the log in page.</p>
             <div className="modal-actions">

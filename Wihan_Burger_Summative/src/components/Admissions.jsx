@@ -2,19 +2,104 @@ import React, { useState } from 'react';
 import './Dashboard.css';
 import './Admissions.css';
 
-export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavigateDashboard, onNavigateCases }) {
+export default function Admissions({ 
+  currentUser, 
+  onBack, 
+  onLogout, 
+  onNavigateProfile, 
+  onNavigateDashboard, 
+  onNavigateCases,
+  onNavigateAdmissions,
+  onNavigateRehabilitation,
+  onNavigateAllRecords,
+  onNavigateVolunteers
+}) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   
   const [condition, setCondition] = useState('Stable');
   const [actions, setActions] = useState(['Assessed on site', 'Ventilated carrier', 'Kept shaded', 'Water offered']);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [formData, setFormData] = useState({
+    animal: 'Bird',
+    species: '',
+    location: '',
+    urgency: 'Medium',
+    assignee: 'Unassigned',
+    finderName: '',
+    phone: '',
+    temperature: '',
+    weight: ''
+  });
+
+  const actualUser = currentUser?.user || currentUser || {};
+  const fullName = actualUser.name || 'Jeffry Burger';
+  const userRole = actualUser.role || 'Administrator';
+
+  const getInitials = (name) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name ? name.substring(0, 2).toUpperCase() : 'JB';
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const toggleAction = (action) => {
     if (actions.includes(action)) {
       setActions(actions.filter(a => a !== action));
     } else {
       setActions([...actions, action]);
+    }
+  };
+
+  const handleAdmitAnimal = async () => {
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('spottybird_token');
+      
+      const randomId = Math.floor(1000 + Math.random() * 9000);
+      
+      const payload = {
+        caseId: `SBRC-2026-${randomId}`,
+        animal: formData.animal,
+        species: formData.species || 'Unknown Species',
+        location: formData.location || 'Unknown Location',
+        status: 'New Report',
+        urgency: formData.urgency,
+        assignee: formData.assignee,
+        finderName: formData.finderName || 'Public Report',
+        phone: formData.phone || 'N/A',
+        weight: formData.weight || '',
+        temperature: formData.temperature || '',
+        condition: condition,
+        daysInCare: 0,
+        state: 'pending',
+        report: 'pending'
+      };
+
+      const response = await fetch('http://127.0.0.1:5000/api/cases', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        onNavigateCases();
+      } else {
+        console.error("Failed to save case.");
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setIsSubmitting(false);
     }
   };
 
@@ -40,10 +125,10 @@ export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavi
           <ul>
             <li onClick={onNavigateDashboard} style={{ cursor: 'pointer' }}><span className="icon">🏠</span> {isSidebarOpen && 'Dashboard'}</li>
             <li onClick={onNavigateCases} style={{ cursor: 'pointer' }}><span className="icon">📁</span> {isSidebarOpen && 'Cases'}</li>
-            <li className="active"><span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}</li>
-            <li><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
-            <li><span className="icon">📄</span> {isSidebarOpen && 'All Records'}</li>
-            <li><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
+            <li className="active" onClick={onNavigateAdmissions} style={{ cursor: 'pointer' }}><span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}</li>
+            <li onClick={onNavigateRehabilitation} style={{ cursor: 'pointer' }}><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
+            <li onClick={onNavigateAllRecords} style={{ cursor: 'pointer' }}><span className="icon">📄</span> {isSidebarOpen && 'All Records'}</li>
+            <li onClick={onNavigateVolunteers} style={{ cursor: 'pointer' }}><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
           </ul>
         </nav>
 
@@ -68,13 +153,13 @@ export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavi
               🔔 <span className="badge">1</span>
             </div>
             
-            <div className="profile-menu" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
-              <img src="/mock-profile.jpg" alt="Karien" className="avatar" />
-              <div className="profile-info">
-                <strong>Karien Schmidt</strong>
-                <span>Executive Director</span>
+            <div className="profile-menu-pill" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
+              <div className="profile-pill-avatar">{getInitials(fullName)}</div>
+              <div className="profile-pill-info">
+                <strong>{fullName}</strong>
+                <span>{userRole}</span>
               </div>
-              <span className="dropdown-arrow">﹀</span>
+              <span className="profile-pill-arrow">⌄</span>
 
               {isProfileMenuOpen && (
                 <div className="dropdown-panel">
@@ -87,7 +172,7 @@ export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavi
         </header>
 
         <button className="back-link" onClick={onBack}>
-          &lt; Back to Case
+          &lt; Back to Cases
         </button>
 
         <div className="admissions-container">
@@ -128,28 +213,17 @@ export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavi
                 <div className="form-row-2">
                   <div className="input-group">
                     <label>Finder name *</label>
-                    <input type="text" defaultValue="Sarah J." />
+                    <input type="text" name="finderName" value={formData.finderName} onChange={handleInputChange} placeholder="e.g. Sarah J." />
                   </div>
                   <div className="input-group">
                     <label>Phone *</label>
-                    <input type="text" defaultValue="076 779 0706" />
+                    <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="e.g. 076 779 0706" />
                   </div>
                 </div>
 
                 <div className="input-group">
-                  <label>Email address</label>
-                  <input type="email" defaultValue="sarah.j@example.com" />
-                </div>
-
-                <div className="form-row-2">
-                  <div className="input-group">
-                    <label>Position</label>
-                    <input type="text" defaultValue="Emily Rogers" />
-                  </div>
-                  <div className="input-group">
-                    <label>Reported date & time *</label>
-                    <input type="text" defaultValue="16 May 2025, 14:45" />
-                  </div>
+                  <label>Location found *</label>
+                  <input type="text" name="location" value={formData.location} onChange={handleInputChange} placeholder="e.g. Midstream Estate" />
                 </div>
               </div>
 
@@ -176,11 +250,6 @@ export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavi
                   </div>
                 </div>
 
-                <div className="input-group">
-                  <label>Need to do / care tasks</label>
-                  <input type="text" placeholder="Add treatment, observation, transport or follow-up tasks. Each item can be assigned and checked off." />
-                </div>
-
                 <div className="form-row-2 attachment-row">
                   <div className="upload-box">
                     <span className="upload-icon">+</span>
@@ -188,33 +257,6 @@ export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavi
                       <strong>Upload photos or files</strong>
                       <p>JPG or PNG • Max 10 MB each</p>
                     </div>
-                  </div>
-                  <div className="whatsapp-link-box">
-                    <strong>WhatsApp intake thread</strong>
-                    <p>Link the original report conversation or add an internal note.</p>
-                    <a href="#">Open / link thread ➔</a>
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-card">
-                <div className="card-header">
-                  <h4>Release date planning</h4>
-                  <p>Schedule the expected release or review date. This can be updated later.</p>
-                </div>
-                
-                <div className="form-row-3">
-                  <div className="input-group">
-                    <label>Planned release date</label>
-                    <select><option>24 May 2025</option></select>
-                  </div>
-                  <div className="input-group">
-                    <label>Review time</label>
-                    <input type="text" defaultValue="09:00" />
-                  </div>
-                  <div className="input-group">
-                    <label>Release location</label>
-                    <select><option>Select location</option></select>
                   </div>
                 </div>
               </div>
@@ -230,31 +272,16 @@ export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavi
                 <div className="form-row-2">
                   <div className="input-group">
                     <label>Animal type *</label>
-                    <select><option>Select animal type</option></select>
+                    <select name="animal" value={formData.animal} onChange={handleInputChange}>
+                      <option value="Bird">Bird</option>
+                      <option value="Mammal">Mammal</option>
+                      <option value="Reptile">Reptile</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
                   <div className="input-group">
                     <label>Species *</label>
-                    <select><option>Select species</option></select>
-                  </div>
-                </div>
-
-                <div className="input-group">
-                  <label>Scientific name</label>
-                  <input type="text" defaultValue="Dacelo novaeguineae" />
-                </div>
-
-                <div className="form-row-3">
-                  <div className="input-group">
-                    <label>Age / life stage *</label>
-                    <select><option>Select life stage</option></select>
-                  </div>
-                  <div className="input-group">
-                    <label>Sex (if known)</label>
-                    <select><option>Select sex</option></select>
-                  </div>
-                  <div className="input-group">
-                    <label>Microchip / ID</label>
-                    <input type="text" placeholder="Enter identifier" />
+                    <input type="text" name="species" value={formData.species} onChange={handleInputChange} placeholder="e.g. Laughing Kookaburra" />
                   </div>
                 </div>
               </div>
@@ -265,22 +292,14 @@ export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavi
                   <p>Record condition, vitals and initial care requirements.</p>
                 </div>
 
-                <div className="form-row-4">
+                <div className="form-row-2">
                   <div className="input-group">
-                    <label>Weight</label>
-                    <input type="text" defaultValue="326" />
+                    <label>Weight (g)</label>
+                    <input type="text" name="weight" value={formData.weight} onChange={handleInputChange} placeholder="e.g. 326" />
                   </div>
                   <div className="input-group">
-                    <label>Unit</label>
-                    <select><option>g</option></select>
-                  </div>
-                  <div className="input-group">
-                    <label>Temperature</label>
-                    <input type="text" defaultValue="38.2 °C" />
-                  </div>
-                  <div className="input-group">
-                    <label>Heart rate</label>
-                    <input type="text" placeholder="Enter bpm" />
+                    <label>Temperature (°C)</label>
+                    <input type="text" name="temperature" value={formData.temperature} onChange={handleInputChange} placeholder="e.g. 38.2" />
                   </div>
                 </div>
 
@@ -300,59 +319,35 @@ export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavi
                 </div>
 
                 <div className="input-group">
-                  <label>Current condition *</label>
-                  <input type="text" placeholder="Describe responsiveness, mobility, breathing, visible injuries and suspected shock." />
-                </div>
-
-                <div className="form-row-3">
-                  <div className="input-group">
-                    <label>Enclosure</label>
-                    <select><option>Select enclosure</option></select>
-                  </div>
-                  <div className="input-group">
-                    <label>Box / carrier</label>
-                    <select><option>Select carrier</option></select>
-                  </div>
-                  <div className="input-group">
-                    <label>Priority *</label>
-                    <select><option>Select urgency</option></select>
-                  </div>
+                  <label>Priority *</label>
+                  <select name="urgency" value={formData.urgency} onChange={handleInputChange}>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
                 </div>
               </div>
 
               <div className="form-card">
                 <div className="card-header">
-                  <h4>Assignment, Consent & Release Planning</h4>
-                  <p>Set ownership, permissions and the next operational step.</p>
+                  <h4>Assignment & Permission</h4>
+                  <p>Set ownership and permissions.</p>
                 </div>
 
-                <div className="form-row-3">
+                <div className="form-row-2">
                   <div className="input-group">
                     <label>Assigned to *</label>
-                    <select><option>Select staff member</option></select>
+                    <select name="assignee" value={formData.assignee} onChange={handleInputChange}>
+                      <option value="Unassigned">Unassigned</option>
+                      <option value={fullName}>{fullName}</option>
+                      <option value="Karien Schmidt">Karien Schmidt</option>
+                      <option value="Tahlia M.">Tahlia M.</option>
+                    </select>
                   </div>
                   <div className="input-group">
                     <label>Case status *</label>
-                    <select><option>New admission</option></select>
-                  </div>
-                  <div className="input-group">
-                    <label>Access level *</label>
-                    <select><option>View / edit rights</option></select>
-                  </div>
-                </div>
-
-                <div className="form-row-3">
-                  <div className="input-group">
-                    <label>Referral required</label>
-                    <select><option>Select yes / no</option></select>
-                  </div>
-                  <div className="input-group">
-                    <label>Consent to contact finder</label>
-                    <select><option>Select consent</option></select>
-                  </div>
-                  <div className="input-group">
-                    <label>Release / outcome</label>
-                    <select><option>Pending assessment</option></select>
+                    <select disabled><option>New admission</option></select>
                   </div>
                 </div>
               </div>
@@ -360,9 +355,11 @@ export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavi
           </div>
 
           <div className="form-bottom-actions">
-            <button className="btn-outline-action">Clear Form</button>
+            <button className="btn-outline-action" onClick={() => setFormData({ animal: 'Bird', species: '', location: '', urgency: 'Medium', assignee: 'Unassigned', finderName: '', phone: '', temperature: '', weight: '' })}>Clear Form</button>
             <button className="btn-outline-action">Save Draft</button>
-            <button className="btn-solid-green large">Admit Animal</button>
+            <button className="btn-solid-green large" onClick={handleAdmitAnimal} disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Admit Animal'}
+            </button>
           </div>
 
         </div>
@@ -371,9 +368,11 @@ export default function Admissions({ onBack, onLogout, onNavigateProfile, onNavi
       {isLogoutModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <img src="/mock-profile.jpg" alt="Karien Schmidt" className="modal-avatar" />
-            <h3>Karien Schmidt</h3>
-            <p className="modal-role">Executive Director</p>
+            <div className="modal-avatar initials-only" style={{ background: '#102a1d', color: 'white', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1rem' }}>
+              {getInitials(fullName)}
+            </div>
+            <h3>{fullName}</h3>
+            <p className="modal-role">{userRole}</p>
             <p className="modal-prompt">Are you sure you want to log out?</p>
             <p className="modal-subtext">Accepting it will take you back to the log in page.</p>
             <div className="modal-actions">

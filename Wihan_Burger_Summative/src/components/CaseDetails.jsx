@@ -9,7 +9,11 @@ export default function CaseDetails({
   onLogout, 
   onNavigateProfile, 
   onNavigateDashboard, 
-  onNavigateCases 
+  onNavigateCases,
+  onNavigateAdmissions,
+  onNavigateRehabilitation,
+  onNavigateAllRecords,
+  onNavigateVolunteers
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -90,10 +94,10 @@ export default function CaseDetails({
           <ul>
             <li onClick={onNavigateDashboard} style={{ cursor: 'pointer' }}><span className="icon">🏠</span> {isSidebarOpen && 'Dashboard'}</li>
             <li className="active" onClick={onNavigateCases} style={{ cursor: 'pointer' }}><span className="icon">📁</span> {isSidebarOpen && 'Cases'}</li>
-            <li><span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}</li>
-            <li><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
-            <li><span className="icon">📄</span> {isSidebarOpen && 'All Records'}</li>
-            <li><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
+            <li onClick={onNavigateAdmissions} style={{ cursor: 'pointer' }}><span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}</li>
+            <li onClick={onNavigateRehabilitation} style={{ cursor: 'pointer' }}><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
+            <li onClick={onNavigateAllRecords} style={{ cursor: 'pointer' }}><span className="icon">📄</span> {isSidebarOpen && 'All Records'}</li>
+            <li onClick={onNavigateVolunteers} style={{ cursor: 'pointer' }}><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
           </ul>
         </nav>
       </aside>
@@ -197,11 +201,12 @@ export default function CaseDetails({
                   <div className="details-grid">
                     <div className="detail-item"><strong>Animal Type</strong><p>{caseData.animal}</p></div>
                     <div className="detail-item"><strong>Days in Care</strong><p>{caseData.daysInCare}</p></div>
-                    <div className="detail-item"><strong>Age / Life Stage</strong><p>Pending Assessment</p></div>
                     <div className="detail-item"><strong>Date / Time Logged</strong><p>{formatDateTime(caseData.createdAt)}</p></div>
-                    <div className="detail-item"><strong>Sex (if known)</strong><p>Unknown</p></div>
-                    <div className="detail-item"><strong>Found By</strong><p>Public Report</p></div>
-                    <div className="detail-item"><strong>Weight (if known)</strong><p>-</p></div>
+                    <div className="detail-item"><strong>Found By</strong><p>{caseData.finderName || 'Public Report'}</p></div>
+                    <div className="detail-item"><strong>Finder Phone</strong><p>{caseData.phone || 'N/A'}</p></div>
+                    <div className="detail-item"><strong>Initial Condition</strong><p>{caseData.condition || 'Pending Assessment'}</p></div>
+                    <div className="detail-item"><strong>Weight</strong><p>{caseData.weight ? `${caseData.weight} g` : '-'}</p></div>
+                    <div className="detail-item"><strong>Temperature</strong><p>{caseData.temperature ? `${caseData.temperature} °C` : '-'}</p></div>
                     <div className="detail-item"><strong>State Tracker</strong><p style={{textTransform: 'capitalize'}}>{caseData.state}</p></div>
                     <div className="detail-item"><strong>Report Status</strong><p style={{textTransform: 'capitalize'}}>{caseData.report}</p></div>
                   </div>
