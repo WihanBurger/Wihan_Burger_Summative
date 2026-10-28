@@ -1,24 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import './AllRecords.css';
 
-export default function AllRecords({ onLogout, onNavigateProfile, onNavigateDashboard, onNavigateCases, onNavigateAdmissions, onNavigateRehabilitation, onNavigateCaseDetails }) {
+export default function AllRecords({ 
+  currentUser, 
+  onLogout, 
+  onNavigateProfile, 
+  onNavigateDashboard, 
+  onNavigateCases, 
+  onNavigateAdmissions, 
+  onNavigateRehabilitation, 
+  onNavigateAllRecords,
+  onNavigateVolunteers,
+  onNavigateCaseDetails 
+}) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  const mockRecords = [
-    { id: 'SBRC-2025-0187', animal: 'Eastern Rosella', species: 'Platycercus eximius', loc1: 'Rooihuiskraal,', loc2: 'Centurion', outcome: 'Transferred', status: 'Pending', release: '-', updated: '15 min ago' },
-    { id: 'SBRC-2025-0186', animal: 'Brush-tailed Possum', species: 'Trichosurus vulpecula', loc1: 'Irene,', loc2: 'Centurion', outcome: '-', status: 'Pending', release: '16 May 2025', updated: '32 min ago' },
-    { id: 'SBRC-2025-0185', animal: 'Laughing Kookaburra', species: 'Dacelo novaeguineae', loc1: 'Midstream Estate', loc2: '', outcome: '-', status: 'Pending', release: '-', updated: '11 min ago' },
-    { id: 'SBRC-2025-0184', animal: 'Tawny Frogmouth', species: 'Podargus strigoides', loc1: 'Eldoraigne,', loc2: 'Centurion', outcome: 'Released to wild', status: 'Contact Sent', release: '17 May 2025', updated: '1 hr ago' },
-    { id: 'SBRC-2025-0187', animal: 'Echidna', species: 'Tachyglossus', loc1: 'Rooihuiskraal,', loc2: 'Centurion', outcome: '-', status: 'Confirmed', release: '-', updated: '15 min ago' },
-    { id: 'SBRC-2025-0186', animal: 'Brush-tailed Possum', species: 'Trichosurus vulpecula', loc1: 'Irene,', loc2: 'Centurion', outcome: 'Specialist care', status: 'Closed', release: '15 May 2025', updated: '32 min ago' },
-    { id: 'SBRC-2025-0185', animal: 'Laughing Kookaburra', species: 'Dacelo novaeguineae', loc1: 'Midstream Estate', loc2: '', outcome: '-', status: 'Confirmed', release: '13 May 2025', updated: '11 min ago' },
-    { id: 'SBRC-2025-0187', animal: 'Eastern Rosella', species: 'Platycercus eximius', loc1: 'Rooihuiskraal,', loc2: 'Centurion', outcome: 'Euthanised', status: 'Pending', release: '-', updated: '15 min ago' },
-    { id: 'SBRC-2025-0184', animal: 'Tawny Frogmouth', species: 'Podargus strigoides', loc1: 'Eldoraigne,', loc2: 'Centurion', outcome: 'Released to wild', status: 'Contact Sent', release: '17 May 2025', updated: '1 hr ago' }
-  ];
+  const [records, setRecords] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const actualUser = currentUser?.user || currentUser || {};
+  const fullName = actualUser.name || 'Jeffry Burger';
+  const userRole = actualUser.role || 'Administrator';
+
+  const getInitials = (name) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name ? name.substring(0, 2).toUpperCase() : 'JB';
+  };
+
+  useEffect(() => {
+    fetchAllRecords();
+  }, []);
+
+  const fetchAllRecords = async () => {
+    try {
+      const token = localStorage.getItem('spottybird_token');
+      const response = await fetch('http://127.0.0.1:5000/api/cases', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setRecords(data);
+    } catch (error) {
+      console.error('Error fetching records:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatTime = (dateString) => {
+    if (!dateString) return 'Just now';
+    return new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getStatusDisplay = (state, status) => {
+    if (state === 'accepted') return { text: 'Confirmed', class: 'confirmed' };
+    if (state === 'denied') return { text: 'Closed', class: 'closed' };
+    return { text: 'Pending', class: 'pending' };
+  };
 
   return (
     <div className="dashboard-wrapper">
@@ -40,12 +82,24 @@ export default function AllRecords({ onLogout, onNavigateProfile, onNavigateDash
 
         <nav className="sidebar-nav">
           <ul>
-            <li onClick={onNavigateDashboard} style={{ cursor: 'pointer' }}><span className="icon">🏠</span> {isSidebarOpen && 'Dashboard'}</li>
-            <li onClick={onNavigateCases} style={{ cursor: 'pointer' }}><span className="icon">📁</span> {isSidebarOpen && 'Cases'}</li>
-            <li onClick={onNavigateAdmissions} style={{ cursor: 'pointer' }}><span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}</li>
-            <li onClick={onNavigateRehabilitation} style={{ cursor: 'pointer' }}><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
-            <li className="active"><span className="icon">📄</span> {isSidebarOpen && 'All Records'}</li>
-            <li><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
+            <li onClick={onNavigateDashboard} style={{ cursor: 'pointer' }}>
+              <span className="icon">🏠</span> {isSidebarOpen && 'Dashboard'}
+            </li>
+            <li onClick={onNavigateCases} style={{ cursor: 'pointer' }}>
+              <span className="icon">📁</span> {isSidebarOpen && 'Cases'}
+            </li>
+            <li onClick={onNavigateAdmissions} style={{ cursor: 'pointer' }}>
+              <span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}
+            </li>
+            <li onClick={onNavigateRehabilitation} style={{ cursor: 'pointer' }}>
+              <span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}
+            </li>
+            <li className="active" onClick={onNavigateAllRecords} style={{ cursor: 'pointer' }}>
+              <span className="icon">📄</span> {isSidebarOpen && 'All Records'}
+            </li>
+            <li onClick={onNavigateVolunteers} style={{ cursor: 'pointer' }}>
+              <span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}
+            </li>
           </ul>
         </nav>
 
@@ -70,13 +124,13 @@ export default function AllRecords({ onLogout, onNavigateProfile, onNavigateDash
               🔔 <span className="badge">1</span>
             </div>
             
-            <div className="profile-menu" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
-              <img src="/mock-profile.jpg" alt="Karien" className="avatar" />
-              <div className="profile-info">
-                <strong>Karien Schmidt</strong>
-                <span>Executive Director</span>
+            <div className="profile-menu-pill" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
+              <div className="profile-pill-avatar">{getInitials(fullName)}</div>
+              <div className="profile-pill-info">
+                <strong>{fullName}</strong>
+                <span>{userRole}</span>
               </div>
-              <span className="dropdown-arrow">﹀</span>
+              <span className="profile-pill-arrow">⌄</span>
 
               {isProfileMenuOpen && (
                 <div className="dropdown-panel">
@@ -107,12 +161,7 @@ export default function AllRecords({ onLogout, onNavigateProfile, onNavigateDash
               <select className="filter-select">
                 <option>Location</option>
                 <option>Centurion</option>
-                <option>Eldoraigne</option>
-                <option>Zwartkop</option>
-                <option>Irene</option>
                 <option>Midstream</option>
-                <option>Hennopspark</option>
-                <option>Rooihuiskraal</option>
               </select>
               
               <select className="filter-select">
@@ -138,7 +187,7 @@ export default function AllRecords({ onLogout, onNavigateProfile, onNavigateDash
                 {isCalendarOpen && (
                   <div className="calendar-popup custom-right">
                     <div className="calendar-header">
-                      <span>May 2025</span>
+                      <span>May 2026</span>
                       <div className="calendar-nav">
                         <button>&lt;</button>
                         <button>&gt;</button>
@@ -152,46 +201,21 @@ export default function AllRecords({ onLogout, onNavigateProfile, onNavigateDash
                       <div className="day-name">Thu</div>
                       <div className="day-name">Fri</div>
                       <div className="day-name">Sat</div>
-                      
+                      {/* Placeholder dates for styling */}
+                      <div className="day prev-month">26</div>
                       <div className="day prev-month">27</div>
                       <div className="day prev-month">28</div>
                       <div className="day prev-month">29</div>
                       <div className="day prev-month">30</div>
                       <div className="day">1</div>
                       <div className="day">2</div>
-                      <div className="day">3</div>
-                      
-                      <div className="day sun">4</div>
+                      <div className="day sun">3</div>
+                      <div className="day">4</div>
                       <div className="day">5</div>
                       <div className="day">6</div>
                       <div className="day">7</div>
                       <div className="day">8</div>
                       <div className="day">9</div>
-                      <div className="day sun">10</div>
-
-                      <div className="day sun">11</div>
-                      <div className="day">12</div>
-                      <div className="day">13</div>
-                      <div className="day">14</div>
-                      <div className="day range-start">15</div>
-                      <div className="day">16</div>
-                      <div className="day">17</div>
-                      
-                      <div className="day sun">18</div>
-                      <div className="day">19</div>
-                      <div className="day">20</div>
-                      <div className="day">21</div>
-                      <div className="day range-start">22</div>
-                      <div className="day range">23</div>
-                      <div className="day range-end">24</div>
-                      
-                      <div className="day sun">25</div>
-                      <div className="day">26</div>
-                      <div className="day">27</div>
-                      <div className="day">28</div>
-                      <div className="day">29</div>
-                      <div className="day range-start">30</div>
-                      <div className="day next-month">1</div>
                     </div>
                   </div>
                 )}
@@ -219,41 +243,47 @@ export default function AllRecords({ onLogout, onNavigateProfile, onNavigateDash
              </div>
 
              <div className="rectable-body">
-               {mockRecords.map((item, index) => (
-                 <div className="rectable-row" key={index} onClick={onNavigateCaseDetails}>
-                   <div className="reccol-id fw-600">{item.id}</div>
-                   <div className="reccol-animal double-line">
-                     <strong>{item.animal}</strong>
-                     <span>{item.species}</span>
-                   </div>
-                   <div className="reccol-location double-line">
-                     <span>{item.loc1}</span>
-                     <span>{item.loc2}</span>
-                   </div>
-                   <div className="reccol-outcome">{item.outcome}</div>
-                   <div className="reccol-status">
-                     <span className={`status-pill ${item.status.toLowerCase().replace(' ', '-')}`}>
-                       {item.status}
-                     </span>
-                   </div>
-                   <div className="reccol-release">{item.release}</div>
-                   <div className="reccol-updated">{item.updated}</div>
-                   <div className="reccol-arrow chevron">&gt;</div>
-                 </div>
-               ))}
+               {isLoading ? (
+                 <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>Loading facility records...</div>
+               ) : records.length === 0 ? (
+                 <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>No historical records found.</div>
+               ) : (
+                 records.map((item) => {
+                   const displayInfo = getStatusDisplay(item.state, item.status);
+                   return (
+                     <div className="rectable-row clickable-row" key={item._id} onClick={() => onNavigateCaseDetails(item._id)}>
+                       <div className="reccol-id fw-600">{item.caseId}</div>
+                       <div className="reccol-animal double-line">
+                         <strong>{item.animal}</strong>
+                         <span>{item.species}</span>
+                       </div>
+                       <div className="reccol-location double-line">
+                         <span>{item.location}</span>
+                       </div>
+                       <div className="reccol-outcome">
+                         {item.status === 'Rehabilitation' ? 'In Care' : '-'}
+                       </div>
+                       <div className="reccol-status">
+                         <span className={`status-pill ${displayInfo.class}`}>
+                           {displayInfo.text}
+                         </span>
+                       </div>
+                       <div className="reccol-release">-</div>
+                       <div className="reccol-updated">{formatTime(item.updatedAt)}</div>
+                       <div className="reccol-arrow chevron">&gt;</div>
+                     </div>
+                   );
+                 })
+               )}
              </div>
           </div>
           
           <div className="pagination">
-            <span>Showing 9 of 28 Cases</span>
+            <span>Showing {records.length} Total Cases</span>
             <div className="page-controls">
               <button disabled>&lt;</button>
               <button className="active">1</button>
-              <button>2</button>
-              <button>3</button>
-              <button>4</button>
-              <button>...</button>
-              <button>&gt;</button>
+              <button disabled>&gt;</button>
             </div>
           </div>
         </div>
@@ -262,9 +292,11 @@ export default function AllRecords({ onLogout, onNavigateProfile, onNavigateDash
       {isLogoutModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <img src="/mock-profile.jpg" alt="Karien Schmidt" className="modal-avatar" />
-            <h3>Karien Schmidt</h3>
-            <p className="modal-role">Executive Director</p>
+            <div className="modal-avatar initials-only" style={{ background: '#102a1d', color: 'white', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1rem' }}>
+              {getInitials(fullName)}
+            </div>
+            <h3>{fullName}</h3>
+            <p className="modal-role">{userRole}</p>
             <p className="modal-prompt">Are you sure you want to log out?</p>
             <p className="modal-subtext">Accepting it will take you back to the log in page.</p>
             <div className="modal-actions">
