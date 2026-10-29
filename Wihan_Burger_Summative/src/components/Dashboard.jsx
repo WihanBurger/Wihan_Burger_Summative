@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 
-export default function Dashboard({ 
+export default function Dashboard({
   currentUser,
-  onLogout, 
-  onNavigateProfile, 
-  onNavigateDashboard, 
-  onNavigateCases, 
-  onNavigateAdmissions, 
-  onNavigateRehabilitation, 
-  onNavigateAllRecords, 
-  onNavigateVolunteers 
+  onLogout,
+  onNavigateProfile,
+  onNavigateDashboard,
+  onNavigateCases,
+  onNavigateAdmissions,
+  onNavigateRehabilitation,
+  onNavigateAllRecords,
+  onNavigateVolunteers
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -23,6 +23,12 @@ export default function Dashboard({
 
   const userName = currentUser?.name || currentUser?.username || currentUser?.email || 'Wildlife Volunteer';
   const userRole = currentUser?.role || 'Staff Member';
+
+  const getInitials = (name) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name ? name.substring(0, 2).toUpperCase() : 'WV';
+  };
 
   useEffect(() => {
     const getDashboardData = async () => {
@@ -54,16 +60,16 @@ export default function Dashboard({
 
   const filteredCases = wildlifeCases.filter(c => {
     if (timeFilter === 'all') return true;
-    const admittedDate = new Date(c.dateAdmitted || c.createdAt);
+    const admittedDate = new Date(c.createdAt || c.dateAdmitted);
     const diffTime = Math.abs(new Date() - admittedDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays <= parseInt(timeFilter);
   });
 
   const totalAdmissions = filteredCases.length;
-  const criticalCases = filteredCases.filter(c => c.severity === 'Critical').length;
-  const pendingCases = filteredCases.filter(c => c.status === 'Pending' || c.status === 'Assess').length;
-  const inRehabCount = filteredCases.filter(c => c.status === 'In Rehabilitation').length;
+  const criticalCases = filteredCases.filter(c => c.urgency === 'Critical' || c.urgency === 'High').length;
+  const pendingCases = filteredCases.filter(c => c.state === 'pending').length;
+  const inRehabCount = filteredCases.filter(c => c.status === 'Rehabilitation').length;
 
   const stages = { new: 0, assess: 0, inCare: 0, ready: 0, closed: 0 };
   const types = { mammals: 0, birds: 0, reptiles: 0, others: 0 };
@@ -71,18 +77,19 @@ export default function Dashboard({
 
   filteredCases.forEach(c => {
     const status = (c.status || '').toLowerCase();
-    const species = (c.species || '').toLowerCase();
+    const animal = (c.animal || '').toLowerCase();
+    const state = (c.state || '').toLowerCase();
 
-    if (status.includes('new')) stages.new++;
-    else if (status.includes('pending') || status.includes('assess')) stages.assess++;
+    if (state === 'pending') stages.new++;
+    else if (status.includes('assess') || state === 'denied') stages.assess++;
     else if (status.includes('rehab')) stages.inCare++;
-    else if (status.includes('ready') || status.includes('transfer')) stages.ready++;
+    else if (status.includes('ready')) stages.ready++;
     else if (status.includes('releas') || status.includes('clos')) stages.closed++;
     else stages.new++;
 
-    if (species.includes('mammal') || species.includes('buck') || species.includes('cat')) types.mammals++;
-    else if (species.includes('bird') || species.includes('owl') || species.includes('eagle')) types.birds++;
-    else if (species.includes('reptile') || species.includes('snake') || species.includes('turtle')) types.reptiles++;
+    if (animal.includes('mammal')) types.mammals++;
+    else if (animal.includes('bird')) types.birds++;
+    else if (animal.includes('reptile')) types.reptiles++;
     else types.others++;
 
     if (status.includes('releas')) breakdown.released++;
@@ -116,6 +123,32 @@ export default function Dashboard({
     other: (breakdown.other / maxBreakdown) * 100,
   };
 
+  const monthCounts = Array(6).fill(0);
+  const monthLabels = [];
+  const today = new Date();
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    monthLabels.push(d.toLocaleString('default', { month: 'short' }));
+  }
+
+  filteredCases.forEach(c => {
+    const d = new Date(c.createdAt || c.dateAdmitted || new Date());
+    const monthDiff = (today.getFullYear() - d.getFullYear()) * 12 + (today.getMonth() - d.getMonth());
+    if (monthDiff >= 0 && monthDiff < 6) {
+      monthCounts[5 - monthDiff]++;
+    }
+  });
+
+  const maxMonthVal = Math.max(...monthCounts, 5);
+
+  const linePath = monthCounts.map((count, index) => {
+    const x = index * 80;
+    const y = 95 - ((count / maxMonthVal) * 90);
+    return `${index === 0 ? 'M' : 'L'}${x},${y}`;
+  }).join(' ');
+
+
   if (isLoading) {
     return <div className="page-transition loading-screen">Loading dashboard analytics...</div>;
   }
@@ -125,7 +158,7 @@ export default function Dashboard({
       <aside className={`sidebar ${isSidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="brand">
-            <img src="/logo.svg" alt="SpottyBird" className="logo" />
+            <img src="/logo.png" alt="SpottyBird" className="logo" />
             {isSidebarOpen && (
               <div className="brand-text">
                 <h1>SpottyBird Wildlife</h1>
@@ -169,18 +202,14 @@ export default function Dashboard({
             <div className="notification-bell">
               🔔 <span className="badge">1</span>
             </div>
-            
-            <div className="profile-menu" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
-              <img 
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=4a7c59&color=fff&rounded=true`} 
-                alt={userName} 
-                className="avatar" 
-              />
-              <div className="profile-info">
+
+            <div className="profile-menu-pill" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
+              <div className="profile-pill-avatar">{getInitials(userName)}</div>
+              <div className="profile-pill-info">
                 <strong>{userName}</strong>
                 <span>{userRole}</span>
               </div>
-              <span className="dropdown-arrow">﹀</span>
+              <span className="profile-pill-arrow">⌄</span>
 
               {isProfileMenuOpen && (
                 <div className="dropdown-panel">
@@ -189,6 +218,7 @@ export default function Dashboard({
                 </div>
               )}
             </div>
+
           </div>
         </header>
 
@@ -281,15 +311,15 @@ export default function Dashboard({
           <div className="chart-card">
             <div className="chart-header-flex">
               <div>
-                <h3>Admissions vs releases</h3>
-                <p className="chart-sub">Monthly movement over the last six months</p>
+                <h3>Admissions History</h3>
+                <p className="chart-sub">Monthly dynamic movement over the last 6 months</p>
               </div>
             </div>
             <div className="chart-wrapper">
               <div className="y-axis">
-                <span>60</span>
-                <span>40</span>
-                <span>20</span>
+                <span>{maxMonthVal}</span>
+                <span>{Math.round(maxMonthVal * 0.66)}</span>
+                <span>{Math.round(maxMonthVal * 0.33)}</span>
                 <span>0</span>
               </div>
               <div className="chart-content-column">
@@ -300,16 +330,13 @@ export default function Dashboard({
                         <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#102a1d" floodOpacity="0.4"/>
                       </filter>
                     </defs>
-                    <path d="M0,70 L80,50 L160,60 L240,20 L320,40 L400,5" fill="none" stroke="#4a7c59" strokeWidth="4" filter="url(#shadow)" vectorEffect="non-scaling-stroke"/>
+                    <path d={linePath} fill="none" stroke="#4a7c59" strokeWidth="4" filter="url(#shadow)" vectorEffect="non-scaling-stroke"/>
                   </svg>
                 </div>
                 <div className="x-axis">
-                  <span>Mar</span>
-                  <span>Apr</span>
-                  <span>May</span>
-                  <span>Jun</span>
-                  <span>Jul</span>
-                  <span>Aug</span>
+                  {monthLabels.map(label => (
+                    <span key={label}>{label}</span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -348,11 +375,9 @@ export default function Dashboard({
       {isLogoutModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <img 
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=4a7c59&color=fff&size=128&rounded=true`} 
-              alt={userName} 
-              className="modal-avatar" 
-            />
+            <div className="modal-avatar initials-only">
+              {getInitials(userName)}
+            </div>
             <h3>{userName}</h3>
             <p className="modal-role">{userRole}</p>
             <p className="modal-prompt">Are you sure you want to log out?</p>

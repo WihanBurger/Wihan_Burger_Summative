@@ -77,7 +77,7 @@ export default function CaseDetails({
       <aside className={`sidebar ${isSidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="brand">
-            <img src="/logo.svg" alt="SpottyBird" className="logo" />
+            <img src="/logo.png" alt="SpottyBird" className="logo" />
             {isSidebarOpen && (
               <div className="brand-text">
                 <h1>SpottyBird Wildlife</h1>

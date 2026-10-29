@@ -1,6 +1,6 @@
 import express from 'express';
 import Case from '../models/Case.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -34,7 +34,7 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-router.put('/:id/state', protect, async (req, res) => {
+router.put('/:id/state', protect, adminOnly, async (req, res) => {
   try {
     const { state, report, assignee, status } = req.body;
     
@@ -53,7 +53,7 @@ router.put('/:id/state', protect, async (req, res) => {
   }
 });
 
-router.post('/seed', async (req, res) => {
+router.post('/seed', protect, adminOnly, async (req, res) => {
   try {
     const mockCases = [
       { caseId: 'SBRC-2026-0187', animal: 'Bird', species: 'Tawny Frogmouth', location: 'Rooihuiskraal, Centurion', status: 'New Report', urgency: 'High', assignee: 'Unassigned', daysInCare: 0, state: 'pending', report: 'pending' },

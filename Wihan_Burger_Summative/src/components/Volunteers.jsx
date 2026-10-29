@@ -215,7 +215,7 @@ export default function Volunteers({
       <aside className={`sidebar ${isSidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="brand">
-            <img src="/logo.svg" alt="SpottyBird" className="logo" />
+            <img src="/logo.png" alt="SpottyBird" className="logo" />
             {isSidebarOpen && (
               <div className="brand-text">
                 <h1>SpottyBird Wildlife</h1>
@@ -239,13 +239,6 @@ export default function Volunteers({
           </ul>
         </nav>
 
-        {isSidebarOpen && (
-          <div className="sidebar-whatsapp">
-            <div className="wa-icon">💬</div>
-            <h4>WhatsApp Intake</h4>
-            <button>Open WhatsApp ↗</button>
-          </div>
-        )}
       </aside>
 
       <main className="main-content">

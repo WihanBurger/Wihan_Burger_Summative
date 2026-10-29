@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import './Cases.css';
 
-export default function Cases({ 
-  currentUser, 
-  onLogout, 
-  onNavigateProfile, 
-  onNavigateDashboard, 
-  onNavigateCaseDetails 
+export default function Cases({
+  currentUser,
+  onLogout,
+  onNavigateProfile,
+  onNavigateDashboard,
+  onNavigateCases,
+  onNavigateAdmissions,
+  onNavigateRehabilitation,
+  onNavigateAllRecords,
+  onNavigateVolunteers,
+  onNavigateCaseDetails
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -17,10 +22,10 @@ export default function Cases({
   const [cases, setCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [calendarView, setCalendarView] = useState(new Date(2026, 4, 1)); 
+  const [calendarView, setCalendarView] = useState(new Date(2026, 4, 1));
   const [startDate, setStartDate] = useState(new Date(2026, 4, 12));
   const [endDate, setEndDate] = useState(new Date(2026, 4, 18));
-  const [selectionStep, setSelectionStep] = useState('start'); 
+  const [selectionStep, setSelectionStep] = useState('start');
 
   const actualUser = currentUser?.user || currentUser || {};
   const fullName = actualUser.name || 'Jeffry Burger';
@@ -52,7 +57,7 @@ export default function Cases({
   };
 
   const handleAccept = async (e, id) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     updateCaseState(id, 'accepted', 'open', fullName);
   };
 
@@ -64,9 +69,9 @@ export default function Cases({
   const updateCaseState = async (id, newState, newReport, newAssignee) => {
     try {
       const token = localStorage.getItem('spottybird_token');
-      setCases(cases.map(c => 
-        c._id === id 
-          ? { ...c, state: newState, report: newReport, assignee: newAssignee, status: newState === 'accepted' ? 'Rehabilitation' : 'Assessment' } 
+      setCases(cases.map(c =>
+        c._id === id
+          ? { ...c, state: newState, report: newReport, assignee: newAssignee, status: newState === 'accepted' ? 'Rehabilitation' : 'Assessment' }
           : c
       ));
 
@@ -105,7 +110,7 @@ export default function Cases({
       } else {
         setEndDate(clickedDate);
         setSelectionStep('start');
-        setTimeout(() => setIsCalendarOpen(false), 200); 
+        setTimeout(() => setIsCalendarOpen(false), 200);
       }
     }
   };
@@ -144,8 +149,8 @@ export default function Cases({
   };
 
   const formatButtonText = () => {
-    if (startDate && endDate) return `${formatDate(startDate).slice(0,6)} - ${formatDate(endDate)}`;
-    if (startDate) return `${formatDate(startDate)} - Select End`;
+    if (startDate && endDate) return `${formatDate(startDate).slice(0, 6)} - ${formatDate(endDate).slice(0, 6)}`;
+    if (startDate) return `${formatDate(startDate).slice(0, 6)} - Select End`;
     return "Select Date Range";
   };
 
@@ -159,7 +164,7 @@ export default function Cases({
       <aside className={`sidebar ${isSidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="brand">
-            <img src="/logo.svg" alt="SpottyBird" className="logo" />
+            <img src="/logo.png" alt="SpottyBird" className="logo" />
             {isSidebarOpen && (
               <div className="brand-text">
                 <h1>SpottyBird Wildlife</h1>
@@ -175,11 +180,11 @@ export default function Cases({
         <nav className="sidebar-nav">
           <ul>
             <li onClick={onNavigateDashboard} style={{ cursor: 'pointer' }}><span className="icon">🏠</span> {isSidebarOpen && 'Dashboard'}</li>
-            <li className="active"><span className="icon">📁</span> {isSidebarOpen && 'Cases'}</li>
-            <li><span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}</li>
-            <li><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
-            <li><span className="icon">📄</span> {isSidebarOpen && 'All Records'}</li>
-            <li><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
+            <li className="active" onClick={onNavigateCases} style={{ cursor: 'pointer' }}><span className="icon">📁</span> {isSidebarOpen && 'Cases'}</li>
+            <li onClick={onNavigateAdmissions} style={{ cursor: 'pointer' }}><span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}</li>
+            <li onClick={onNavigateRehabilitation} style={{ cursor: 'pointer' }}><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
+            <li onClick={onNavigateAllRecords} style={{ cursor: 'pointer' }}><span className="icon">📄</span> {isSidebarOpen && 'All Records'}</li>
+            <li onClick={onNavigateVolunteers} style={{ cursor: 'pointer' }}><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
           </ul>
         </nav>
       </aside>

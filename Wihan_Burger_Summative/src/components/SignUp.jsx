@@ -5,6 +5,7 @@ export default function SignUp({ onSignUpSuccess, onNavigateLogin }) {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -42,23 +43,36 @@ export default function SignUp({ onSignUpSuccess, onNavigateLogin }) {
 
   return (
     <div className="login-wrapper page-transition">
-      <div className="login-sidebar swap-in-left">
+      <div 
+        className="login-sidebar swap-in-left"
+        style={{ 
+          backgroundImage: "url('/login-bg.jpg')", 
+          backgroundSize: 'cover', 
+          backgroundPosition: '20% center', 
+          backgroundRepeat: 'no-repeat',
+          padding: '4rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          position: 'relative'
+        }}
+      >
         <div className="sidebar-overlay"></div>
         
-        <div className="sidebar-content brand animate-fade-in-down">
-          <img src="/logo.svg" alt="SpottyBird" className="logo shadow-glow" />
+        <div className="sidebar-content brand animate-fade-in-down" style={{ position: 'relative', zIndex: 2 }}>
+          <img src="/logo.png" alt="SpottyBird" className="logo shadow-glow" />
           <div className="brand-text">
             <h1>SpottyBird</h1>
             <p>Wildlife Rehabilitation</p>
           </div>
         </div>
 
-        <div className="sidebar-content middle animate-fade-in-right delay-1">
+        <div className="sidebar-content middle animate-fade-in-right delay-1" style={{ position: 'relative', zIndex: 2 }}>
           <h2>Join the Cause.</h2>
           <p>Create an account to track admissions, monitor rehabilitation progress, and help release wildlife safely back into nature.</p>
         </div>
 
-        <div className="sidebar-content bottom animate-fade-in-up delay-2">
+        <div className="sidebar-content bottom animate-fade-in-up delay-2" style={{ position: 'relative', zIndex: 2 }}>
           <span>Rescue</span> <span className="dot">•</span>
           <span>Rehabilitate</span> <span className="dot">•</span>
           <span>Release</span>
@@ -68,7 +82,7 @@ export default function SignUp({ onSignUpSuccess, onNavigateLogin }) {
       <div className="login-main swap-in-right">
         <div className="top-action animate-fade-in-down">
           <button className="return-link" onClick={onNavigateLogin}>
-            Already have an account? Log In
+            Already have an account? Log In ➔
           </button>
         </div>
 
@@ -119,12 +133,20 @@ export default function SignUp({ onSignUpSuccess, onNavigateLogin }) {
               <div className="input-wrapper focus-anim">
                 <span className="icon">🔒</span>
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   value={formData.password} 
                   onChange={(e) => setFormData({...formData, password: e.target.value})} 
                   required 
                   placeholder="Create a strong password"
                 />
+                <button 
+                  type="button" 
+                  className="icon-right toggle-password" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? "Hide Password" : "Show Password"}
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
               </div>
             </div>
 

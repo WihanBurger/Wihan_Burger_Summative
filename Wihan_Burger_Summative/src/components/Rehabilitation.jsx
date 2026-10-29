@@ -9,6 +9,9 @@ export default function Rehabilitation({
   onNavigateDashboard, 
   onNavigateCases, 
   onNavigateAdmissions, 
+  onNavigateRehabilitation,
+  onNavigateAllRecords,
+  onNavigateVolunteers,
   onNavigateCaseDetails 
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -107,8 +110,8 @@ export default function Rehabilitation({
 
   const formatButtonText = () => {
     const formatStr = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    if (startDate && endDate) return `${formatStr(startDate).slice(0,6)} - ${formatStr(endDate)}`;
-    if (startDate) return `${formatStr(startDate)} - Select End`;
+    if (startDate && endDate) return `${formatStr(startDate).slice(0,6)} - ${formatStr(endDate).slice(0,6)}`;
+    if (startDate) return `${formatStr(startDate).slice(0,6)} - Select End`;
     return "Select Date Range";
   };
 
@@ -117,7 +120,7 @@ export default function Rehabilitation({
       <aside className={`sidebar ${isSidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="brand">
-            <img src="/logo.svg" alt="SpottyBird" className="logo" />
+            <img src="/logo.png" alt="SpottyBird" className="logo" />
             {isSidebarOpen && (
               <div className="brand-text">
                 <h1>SpottyBird Wildlife</h1>
@@ -135,19 +138,11 @@ export default function Rehabilitation({
             <li onClick={onNavigateDashboard} style={{ cursor: 'pointer' }}><span className="icon">🏠</span> {isSidebarOpen && 'Dashboard'}</li>
             <li onClick={onNavigateCases} style={{ cursor: 'pointer' }}><span className="icon">📁</span> {isSidebarOpen && 'Cases'}</li>
             <li onClick={onNavigateAdmissions} style={{ cursor: 'pointer' }}><span className="icon">🏥</span> {isSidebarOpen && 'Admissions'}</li>
-            <li className="active"><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
-            <li><span className="icon">📄</span> {isSidebarOpen && 'All Records'}</li>
-            <li><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
+            <li className="active" onClick={onNavigateRehabilitation} style={{ cursor: 'pointer' }}><span className="icon">🌿</span> {isSidebarOpen && 'Rehabilitation'}</li>
+            <li onClick={onNavigateAllRecords} style={{ cursor: 'pointer' }}><span className="icon">📄</span> {isSidebarOpen && 'All Records'}</li>
+            <li onClick={onNavigateVolunteers} style={{ cursor: 'pointer' }}><span className="icon">👤</span> {isSidebarOpen && 'Volunteers'}</li>
           </ul>
         </nav>
-
-        {isSidebarOpen && (
-          <div className="sidebar-whatsapp">
-            <div className="wa-icon">💬</div>
-            <h4>WhatsApp Intake</h4>
-            <button>Open WhatsApp ↗</button>
-          </div>
-        )}
       </aside>
 
       <main className="main-content">

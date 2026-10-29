@@ -14,6 +14,7 @@ export default function ProfileSettings({
   onNavigateVolunteers
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const [profileStatus, setProfileStatus] = useState({ type: '', message: '' });
@@ -21,7 +22,9 @@ export default function ProfileSettings({
   const [isSaving, setIsSaving] = useState(false);
 
   const fileInputRef = useRef(null);
+  
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState(null); 
 
   const actualUser = currentUser?.user || currentUser || {};
 
@@ -32,7 +35,14 @@ export default function ProfileSettings({
   const userRole = actualUser.role || 'Staff Member';
   
   const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4a7c59&color=fff&rounded=true&size=140`;
-  const avatarUrl = selectedPhoto || defaultAvatar;
+
+  const avatarUrl = selectedPhoto || actualUser.profileImage || defaultAvatar;
+
+  const getInitials = (name) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name ? name.substring(0, 2).toUpperCase() : 'WV';
+  };
 
   const [personalInfo, setPersonalInfo] = useState({
     name: firstName,
@@ -73,6 +83,7 @@ export default function ProfileSettings({
     const file = e.target.files[0];
     if (file) {
       setSelectedPhoto(URL.createObjectURL(file));
+      setSelectedPhotoFile(file);
     }
   };
 
@@ -83,13 +94,21 @@ export default function ProfileSettings({
     try {
       const token = localStorage.getItem('spottybird_token');
       
+      const formData = new FormData();
+      formData.append('name', personalInfo.name);
+      formData.append('surname', personalInfo.surname);
+      formData.append('email', personalInfo.email);
+      formData.append('phone', personalInfo.phone);
+      if (selectedPhotoFile) {
+        formData.append('profileImage', selectedPhotoFile);
+      }
+      
       const response = await fetch('http://127.0.0.1:5000/api/users/profile', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(personalInfo)
+        body: formData
       });
       
       const data = await response.json();
@@ -99,12 +118,15 @@ export default function ProfileSettings({
       const newToken = data.token ? data.token : token;
       
       localStorage.setItem('spottybird_token', newToken);
-      
+
       if (onUpdateUser) {
         onUpdateUser(newUserData);
       }
       
       setProfileStatus({ type: 'success', message: 'Profile updated successfully!' });
+
+      setSelectedPhotoFile(null); 
+      
       setTimeout(() => setProfileStatus({ type: '', message: '' }), 3000);
     } catch (error) {
       setProfileStatus({ type: 'error', message: error.message || 'Failed to update profile.' });
@@ -158,6 +180,8 @@ export default function ProfileSettings({
       phone: actualUser.phone || '',
       position: userRole
     });
+    setSelectedPhoto(null);
+    setSelectedPhotoFile(null);
     setProfileStatus({ type: '', message: '' });
   };
 
@@ -166,7 +190,7 @@ export default function ProfileSettings({
       <aside className={`sidebar ${isSidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="brand">
-            <img src="/logo.svg" alt="SpottyBird" className="logo" />
+            <img src="/logo.png" alt="SpottyBird" className="logo" />
             {isSidebarOpen && (
               <div className="brand-text">
                 <h1>SpottyBird Wildlife</h1>
@@ -202,7 +226,27 @@ export default function ProfileSettings({
             <div className="notification-bell">
               🔔 <span className="badge">1</span>
             </div>
-            <button className="btn-outline" onClick={() => setIsLogoutModalOpen(true)}>Log Out ⍈</button>
+            
+            <div className="profile-menu-pill" onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}>
+              <div className="profile-pill-avatar" style={{ overflow: 'hidden' }}>
+                {avatarUrl && avatarUrl !== defaultAvatar ? (
+                  <img src={avatarUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  getInitials(fullName)
+                )}
+              </div>
+              <div className="profile-pill-info">
+                <strong>{fullName}</strong>
+                <span>{userRole}</span>
+              </div>
+              <span className="profile-pill-arrow">⌄</span>
+
+              {isProfileMenuOpen && (
+                <div className="dropdown-panel">
+                  <button onClick={() => setIsLogoutModalOpen(true)}>Log Out ⍈</button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -216,7 +260,7 @@ export default function ProfileSettings({
             <h3 className="card-title">Profile Photo</h3>
             <div className="photo-section">
               <div className="avatar-wrapper">
-                <img src={avatarUrl} alt="Profile" className="large-avatar" />
+                <img src={avatarUrl} alt="Profile" className="large-avatar" style={{ objectFit: 'cover' }} />
                 <button className="edit-avatar-btn" onClick={handlePhotoClick}>✏️</button>
               </div>
               <div className="photo-details">
@@ -231,7 +275,10 @@ export default function ProfileSettings({
                 <div className="photo-actions">
                   <button className="btn-green" onClick={handlePhotoClick}>📤 Upload Photo</button>
                   <button className="btn-gray">📷 Take Photo</button>
-                  <button className="btn-outline-red" onClick={() => setSelectedPhoto(null)}>🗑️ Remove Photo</button>
+                  <button className="btn-outline-red" onClick={() => {
+                    setSelectedPhoto(null);
+                    setSelectedPhotoFile(null);
+                  }}>🗑️ Remove Photo</button>
                 </div>
                 <div className="format-info">
                   <span className="icon-img">🖼️</span>
@@ -342,7 +389,13 @@ export default function ProfileSettings({
       {isLogoutModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <img src={defaultAvatar} alt={fullName} className="modal-avatar" />
+            <div className="modal-avatar initials-only" style={{ background: '#102a1d', color: 'white', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1rem', overflow: 'hidden' }}>
+              {avatarUrl && avatarUrl !== defaultAvatar ? (
+                <img src={avatarUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                getInitials(fullName)
+              )}
+            </div>
             <h3>{fullName}</h3>
             <p className="modal-role">{userRole}</p>
             <p className="modal-prompt">Are you sure you want to log out?</p>
